@@ -3,9 +3,10 @@ import { router, useSegments } from "expo-router";
 import { ActivityIndicator, View, StyleSheet } from "react-native";
 import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
 import { ThemedView } from "./themed-view";
+import { ThemedText } from "./themed-text";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useFirebaseAuth();
+  const { user, loading, error } = useFirebaseAuth();
   const segments = useSegments();
 
   useEffect(() => {
@@ -30,6 +31,18 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
+  if (error) {
+    console.error("[AuthGuard] Error:", error);
+    return (
+      <ThemedView style={styles.container}>
+        <ThemedText type="defaultSemiBold" style={styles.errorText}>
+          エラーが発生しました
+        </ThemedText>
+        <ThemedText style={styles.errorMessage}>{error}</ThemedText>
+      </ThemedView>
+    );
+  }
+
   return <>{children}</>;
 }
 
@@ -38,5 +51,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    padding: 16,
+  },
+  errorText: {
+    marginBottom: 8,
+  },
+  errorMessage: {
+    textAlign: "center",
   },
 });

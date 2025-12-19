@@ -13,19 +13,35 @@ const firebaseConfig = {
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || "",
 };
 
+// Check if Firebase is configured
+const isFirebaseConfigured = Object.values(firebaseConfig).every((value) => value !== "");
+
+if (!isFirebaseConfigured) {
+  console.warn(
+    "[Firebase] Configuration incomplete. Please set environment variables in .env file:",
+    "EXPO_PUBLIC_FIREBASE_API_KEY, EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN, EXPO_PUBLIC_FIREBASE_PROJECT_ID, etc.",
+  );
+}
+
 // Initialize Firebase
 let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
 
-if (getApps().length === 0) {
-  app = initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  db = getFirestore(app);
-} else {
-  app = getApps()[0];
-  auth = getAuth(app);
-  db = getFirestore(app);
+try {
+  if (getApps().length === 0) {
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = getFirestore(app);
+    console.log("[Firebase] Initialized successfully");
+  } else {
+    app = getApps()[0];
+    auth = getAuth(app);
+    db = getFirestore(app);
+  }
+} catch (error) {
+  console.error("[Firebase] Initialization error:", error);
+  throw error;
 }
 
-export { app, auth, db };
+export { app, auth, db, isFirebaseConfigured };

@@ -81,6 +81,16 @@ const config: ExpoConfig = {
         },
       },
     ],
+    [
+      "expo-build-properties",
+      {
+        android: {
+          usesCleartextTraffic: false,
+          compileSdkVersion: 35,
+          buildToolsVersion: "35.0.0",
+        },
+      },
+    ],
   ],
   experiments: {
     typedRoutes: true,
