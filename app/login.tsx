@@ -34,19 +34,6 @@ export default function LoginScreen() {
       return;
     }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      Alert.alert("エラー", "メールアドレスの形式が正しくありません");
-      return;
-    }
-
-    // Validate password length
-    if (password.length < 6) {
-      Alert.alert("エラー", "パスワードは6文字以上である必要があります");
-      return;
-    }
-
     try {
       console.log(`[Auth] ${isSignUp ? "Sign up" : "Sign in"} attempt with email: ${email}`);
       if (isSignUp) {
