@@ -118,7 +118,16 @@ export default function HomeScreen() {
             placeholderTextColor={textSecondary}
             value={searchQuery}
             onChangeText={setSearchQuery}
+            returnKeyType="search"
           />
+          {searchQuery.length > 0 && (
+            <Pressable
+              onPress={() => setSearchQuery("")}
+              style={styles.clearButton}
+            >
+              <IconSymbol name="xmark.circle.fill" size={20} color={textSecondary} />
+            </Pressable>
+          )}
         </View>
 
         {/* Filter Button */}
@@ -199,6 +208,9 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     lineHeight: 24,
+  },
+  clearButton: {
+    padding: 4,
   },
   filterButton: {
     flexDirection: "row",

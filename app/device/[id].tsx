@@ -334,9 +334,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
     backgroundColor: "transparent",
+    gap: 12,
   },
   actionButton: {
-    height: 48,
+    height: 44,
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",

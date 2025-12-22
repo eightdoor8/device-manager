@@ -49,23 +49,23 @@ export async function getDevices(filter?: DeviceFilter): Promise<Device[]> {
   try {
     console.log("[DeviceService] Getting devices with filter:", filter);
     const devicesRef = collection(db, DEVICES_COLLECTION);
-    let q = query(devicesRef, orderBy("updatedAt", "desc"));
+    const constraints: any[] = [];
 
-    // Apply filters
+    // Build query constraints
     if (filter?.status) {
-      q = query(devicesRef, where("status", "==", filter.status), orderBy("updatedAt", "desc"));
+      constraints.push(where("status", "==", filter.status));
     }
     if (filter?.osName) {
-      q = query(devicesRef, where("osName", "==", filter.osName), orderBy("updatedAt", "desc"));
+      constraints.push(where("osName", "==", filter.osName));
     }
     if (filter?.manufacturer) {
-      q = query(
-        devicesRef,
-        where("manufacturer", "==", filter.manufacturer),
-        orderBy("updatedAt", "desc"),
-      );
+      constraints.push(where("manufacturer", "==", filter.manufacturer));
     }
 
+    // Add ordering
+    constraints.push(orderBy("updatedAt", "desc"));
+
+    const q = query(devicesRef, ...constraints);
     const querySnapshot = await getDocs(q);
     console.log("[DeviceService] Found devices:", querySnapshot.docs.length);
     let devices = querySnapshot.docs.map((doc) => convertToDevice(doc.id, doc.data()));
@@ -88,9 +88,6 @@ export async function getDevices(filter?: DeviceFilter): Promise<Device[]> {
   }
 }
 
-/**
- * Get a single device by ID
- */
 export async function getDevice(deviceId: string): Promise<Device | null> {
   try {
     console.log("[DeviceService] Getting device:", deviceId);
@@ -267,12 +264,20 @@ export async function getDevicesByUser(userId: string): Promise<Device[]> {
     const q = query(
       devicesRef,
       where("currentUserId", "==", userId),
-      orderBy("borrowedAt", "desc"),
     );
 
     const querySnapshot = await getDocs(q);
     console.log("[DeviceService] Found devices for user:", querySnapshot.docs.length);
-    return querySnapshot.docs.map((doc) => convertToDevice(doc.id, doc.data()));
+    const devices = querySnapshot.docs.map((doc) => convertToDevice(doc.id, doc.data()));
+    
+    // Sort by borrowedAt in descending order (most recent first)
+    devices.sort((a, b) => {
+      const aTime = a.borrowedAt instanceof Timestamp ? a.borrowedAt.toMillis() : 0;
+      const bTime = b.borrowedAt instanceof Timestamp ? b.borrowedAt.toMillis() : 0;
+      return bTime - aTime;
+    });
+    
+    return devices;
   } catch (error) {
     console.error("[DeviceService] Error getting user devices:", error);
     throw error;
