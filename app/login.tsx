@@ -35,16 +35,30 @@ export default function LoginScreen() {
     }
 
     try {
+      console.log(`[Auth] ${isSignUp ? "Sign up" : "Sign in"} attempt with email: ${email}`);
       if (isSignUp) {
+        console.log("[Auth] Calling signUp...");
         await signUp(email, password);
+        console.log("[Auth] Sign up successful");
         Alert.alert("成功", "アカウントが作成されました");
       } else {
+        console.log("[Auth] Calling signIn...");
         await signIn(email, password);
+        console.log("[Auth] Sign in successful");
       }
       router.replace("/(tabs)");
     } catch (error: any) {
+      console.error("[Auth] Error code:", error.code);
+      console.error("[Auth] Error message:", error.message);
+      console.error("[Auth] Full error:", error);
+      
       let message = "認証に失敗しました";
-      if (error.code === "auth/invalid-email") {
+      
+      // ネットワークエラーの検出
+      const errorMsg = error.message || "";
+      if (errorMsg.includes("Network") || errorMsg.includes("network") || errorMsg.includes("timeout")) {
+        message = "ネットワーク接続エラー: インターネット接続を確認してください";
+      } else if (error.code === "auth/invalid-email") {
         message = "メールアドレスの形式が正しくありません";
       } else if (error.code === "auth/user-not-found") {
         message = "ユーザーが見つかりません";
@@ -54,6 +68,10 @@ export default function LoginScreen() {
         message = "このメールアドレスは既に使用されています";
       } else if (error.code === "auth/weak-password") {
         message = "パスワードは6文字以上である必要があります";
+      } else if (error.code === "auth/too-many-requests") {
+        message = "ログイン試行回数が多すぎます。しばらく後に再度お試しください";
+      } else if (error.message) {
+        message = error.message;
       }
       Alert.alert("エラー", message);
     }

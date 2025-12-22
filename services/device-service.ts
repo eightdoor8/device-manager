@@ -46,6 +46,7 @@ function convertToDevice(id: string, data: DocumentData): Device {
  */
 export async function getDevices(filter?: DeviceFilter): Promise<Device[]> {
   try {
+    console.log("[DeviceService] Getting devices with filter:", filter);
     const devicesRef = collection(db, DEVICES_COLLECTION);
     let q = query(devicesRef, orderBy("updatedAt", "desc"));
 
@@ -65,6 +66,7 @@ export async function getDevices(filter?: DeviceFilter): Promise<Device[]> {
     }
 
     const querySnapshot = await getDocs(q);
+    console.log("[DeviceService] Found devices:", querySnapshot.docs.length);
     let devices = querySnapshot.docs.map((doc) => convertToDevice(doc.id, doc.data()));
 
     // Apply search query (client-side filtering)
@@ -80,7 +82,7 @@ export async function getDevices(filter?: DeviceFilter): Promise<Device[]> {
 
     return devices;
   } catch (error) {
-    console.error("Error getting devices:", error);
+    console.error("[DeviceService] Error getting devices:", error);
     throw error;
   }
 }
@@ -90,15 +92,18 @@ export async function getDevices(filter?: DeviceFilter): Promise<Device[]> {
  */
 export async function getDevice(deviceId: string): Promise<Device | null> {
   try {
+    console.log("[DeviceService] Getting device:", deviceId);
     const deviceRef = doc(db, DEVICES_COLLECTION, deviceId);
     const deviceSnap = await getDoc(deviceRef);
 
     if (deviceSnap.exists()) {
+      console.log("[DeviceService] Device found");
       return convertToDevice(deviceSnap.id, deviceSnap.data());
     }
+    console.log("[DeviceService] Device not found");
     return null;
   } catch (error) {
-    console.error("Error getting device:", error);
+    console.error("[DeviceService] Error getting device:", error);
     throw error;
   }
 }
@@ -111,6 +116,10 @@ export async function registerDevice(
   userId: string,
 ): Promise<string> {
   try {
+    console.log("[DeviceService] Registering device...");
+    console.log("[DeviceService] Device data:", deviceData);
+    console.log("[DeviceService] User ID:", userId);
+
     const now = Timestamp.now();
     const docRef = await addDoc(collection(db, DEVICES_COLLECTION), {
       ...deviceData,
@@ -119,9 +128,10 @@ export async function registerDevice(
       registeredAt: now,
       updatedAt: now,
     });
+    console.log("[DeviceService] Device registered successfully:", docRef.id);
     return docRef.id;
   } catch (error) {
-    console.error("Error registering device:", error);
+    console.error("[DeviceService] Error registering device:", error);
     throw error;
   }
 }
@@ -134,13 +144,15 @@ export async function updateDevice(
   updates: Partial<DeviceFormData>,
 ): Promise<void> {
   try {
+    console.log("[DeviceService] Updating device:", deviceId);
     const deviceRef = doc(db, DEVICES_COLLECTION, deviceId);
     await updateDoc(deviceRef, {
       ...updates,
       updatedAt: Timestamp.now(),
     });
+    console.log("[DeviceService] Device updated successfully");
   } catch (error) {
-    console.error("Error updating device:", error);
+    console.error("[DeviceService] Error updating device:", error);
     throw error;
   }
 }
@@ -154,6 +166,7 @@ export async function borrowDevice(
   userName: string,
 ): Promise<void> {
   try {
+    console.log("[DeviceService] Borrowing device:", deviceId);
     const device = await getDevice(deviceId);
     if (!device) {
       throw new Error("Device not found");
@@ -170,8 +183,9 @@ export async function borrowDevice(
       borrowedAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
     });
+    console.log("[DeviceService] Device borrowed successfully");
   } catch (error) {
-    console.error("Error borrowing device:", error);
+    console.error("[DeviceService] Error borrowing device:", error);
     throw error;
   }
 }
@@ -181,6 +195,7 @@ export async function borrowDevice(
  */
 export async function returnDevice(deviceId: string, userId: string): Promise<void> {
   try {
+    console.log("[DeviceService] Returning device:", deviceId);
     const device = await getDevice(deviceId);
     if (!device) {
       throw new Error("Device not found");
@@ -200,8 +215,9 @@ export async function returnDevice(deviceId: string, userId: string): Promise<vo
       borrowedAt: null,
       updatedAt: Timestamp.now(),
     });
+    console.log("[DeviceService] Device returned successfully");
   } catch (error) {
-    console.error("Error returning device:", error);
+    console.error("[DeviceService] Error returning device:", error);
     throw error;
   }
 }
@@ -211,6 +227,7 @@ export async function returnDevice(deviceId: string, userId: string): Promise<vo
  */
 export async function getDevicesByUser(userId: string): Promise<Device[]> {
   try {
+    console.log("[DeviceService] Getting devices for user:", userId);
     const devicesRef = collection(db, DEVICES_COLLECTION);
     const q = query(
       devicesRef,
@@ -219,9 +236,10 @@ export async function getDevicesByUser(userId: string): Promise<Device[]> {
     );
 
     const querySnapshot = await getDocs(q);
+    console.log("[DeviceService] Found devices for user:", querySnapshot.docs.length);
     return querySnapshot.docs.map((doc) => convertToDevice(doc.id, doc.data()));
   } catch (error) {
-    console.error("Error getting user devices:", error);
+    console.error("[DeviceService] Error getting user devices:", error);
     throw error;
   }
 }

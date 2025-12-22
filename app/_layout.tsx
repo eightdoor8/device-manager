@@ -81,6 +81,8 @@ export default function RootLayout() {
               <Stack>
                 <Stack.Screen name="login" options={{ headerShown: false }} />
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="register-device" options={{ title: "端末登録", headerBackTitle: "戻る" }} />
+                <Stack.Screen name="device/[id]" options={{ title: "端末詳細", headerBackTitle: "戻る" }} />
                 <Stack.Screen name="modal" options={{ presentation: "modal", title: "Modal" }} />
                 <Stack.Screen name="oauth/callback" options={{ headerShown: false }} />
               </Stack>

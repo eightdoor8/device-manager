@@ -9,10 +9,12 @@ const USERS_COLLECTION = "users";
  */
 export async function getUser(userId: string): Promise<User | null> {
   try {
+    console.log("[UserService] Getting user:", userId);
     const userRef = doc(db, USERS_COLLECTION, userId);
     const userSnap = await getDoc(userRef);
 
     if (userSnap.exists()) {
+      console.log("[UserService] User found:", userSnap.id);
       const data = userSnap.data();
       return {
         id: userSnap.id,
@@ -23,9 +25,10 @@ export async function getUser(userId: string): Promise<User | null> {
         updatedAt: data.updatedAt?.toDate(),
       };
     }
+    console.log("[UserService] User not found:", userId);
     return null;
   } catch (error) {
-    console.error("Error getting user:", error);
+    console.error("[UserService] Error getting user:", error);
     throw error;
   }
 }
@@ -39,6 +42,7 @@ export async function createOrUpdateUser(
   name?: string,
 ): Promise<User> {
   try {
+    console.log("[UserService] Creating/updating user:", userId, email);
     const userRef = doc(db, USERS_COLLECTION, userId);
     const userSnap = await getDoc(userRef);
 
@@ -46,6 +50,7 @@ export async function createOrUpdateUser(
 
     if (userSnap.exists()) {
       // Update existing user
+      console.log("[UserService] Updating existing user");
       await setDoc(
         userRef,
         {
@@ -57,6 +62,7 @@ export async function createOrUpdateUser(
       );
     } else {
       // Create new user with default role
+      console.log("[UserService] Creating new user with role:", UserRole.USER);
       await setDoc(userRef, {
         email,
         name: name || email.split("@")[0],
@@ -66,13 +72,15 @@ export async function createOrUpdateUser(
       });
     }
 
+    console.log("[UserService] Getting updated user document");
     const updatedUser = await getUser(userId);
     if (!updatedUser) {
       throw new Error("Failed to create/update user");
     }
+    console.log("[UserService] User created/updated successfully");
     return updatedUser;
   } catch (error) {
-    console.error("Error creating/updating user:", error);
+    console.error("[UserService] Error creating/updating user:", error);
     throw error;
   }
 }
@@ -85,7 +93,7 @@ export async function isAdmin(userId: string): Promise<boolean> {
     const user = await getUser(userId);
     return user?.role === UserRole.ADMIN;
   } catch (error) {
-    console.error("Error checking admin status:", error);
+    console.error("[UserService] Error checking admin status:", error);
     return false;
   }
 }

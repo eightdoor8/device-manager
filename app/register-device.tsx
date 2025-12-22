@@ -49,6 +49,7 @@ export default function RegisterDeviceScreen() {
 
   const loadDeviceInfo = async () => {
     try {
+      console.log("[RegisterDevice] Loading device info...");
       if (!isPhysicalDevice()) {
         Alert.alert(
           "注意",
@@ -57,6 +58,7 @@ export default function RegisterDeviceScreen() {
       }
 
       const deviceInfo = await getCurrentDeviceInfo();
+      console.log("[RegisterDevice] Device info loaded:", deviceInfo);
       setFormData({
         modelName: deviceInfo.modelName,
         internalModelId: deviceInfo.internalModelId,
@@ -69,7 +71,7 @@ export default function RegisterDeviceScreen() {
         memo: "",
       });
     } catch (error) {
-      console.error("Failed to load device info:", error);
+      console.error("[RegisterDevice] Failed to load device info:", error);
       Alert.alert("エラー", "端末情報の取得に失敗しました");
     } finally {
       setLoading(false);
@@ -77,19 +79,27 @@ export default function RegisterDeviceScreen() {
   };
 
   const handleSubmit = async () => {
+    console.log("[RegisterDevice] Submit button pressed");
+    console.log("[RegisterDevice] Form data:", formData);
+    console.log("[RegisterDevice] User:", user?.id);
+
     if (!formData.modelName || !formData.osName || !formData.osVersion) {
+      console.log("[RegisterDevice] Missing required fields");
       Alert.alert("エラー", "必須項目を入力してください");
       return;
     }
 
     if (!user) {
+      console.log("[RegisterDevice] User not found");
       Alert.alert("エラー", "ユーザー情報が取得できません");
       return;
     }
 
     try {
       setSubmitting(true);
-      await registerDevice(formData, user.id);
+      console.log("[RegisterDevice] Calling registerDevice...");
+      const deviceId = await registerDevice(formData, user.id);
+      console.log("[RegisterDevice] Device registered successfully:", deviceId);
       Alert.alert("成功", "端末を登録しました", [
         {
           text: "OK",
@@ -97,7 +107,7 @@ export default function RegisterDeviceScreen() {
         },
       ]);
     } catch (error) {
-      console.error("Failed to register device:", error);
+      console.error("[RegisterDevice] Failed to register device:", error);
       Alert.alert("エラー", "端末の登録に失敗しました");
     } finally {
       setSubmitting(false);
