@@ -12,13 +12,13 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (loading) return;
 
-    const inAuthGroup = segments[0] === "(tabs)";
+    const inAuthGroup = segments[0] === "(tabs)" || segments[0] === "register-device" || segments[0] === "device";
 
     if (!user && inAuthGroup) {
       // Redirect to login if not authenticated
       router.replace("/login" as any);
-    } else if (user && !inAuthGroup) {
-      // Redirect to tabs if authenticated
+    } else if (user && segments[0] === "login") {
+      // Redirect to tabs if authenticated and on login screen
       router.replace("/(tabs)");
     }
   }, [user, loading, segments]);
