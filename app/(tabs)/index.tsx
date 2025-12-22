@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -8,6 +7,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
+import { useState, useEffect } from "react";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemedText } from "@/components/themed-text";
@@ -26,6 +26,9 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<DeviceStatus | undefined>();
+  const [osFilter, setOsFilter] = useState<string | undefined>();
+  const [manufacturerFilter, setManufacturerFilter] = useState<string | undefined>();
+  const [uniqueManufacturers, setUniqueManufacturers] = useState<string[]>([]);
 
   const { user } = useFirebaseAuth();
   const insets = useSafeAreaInsets();
@@ -38,6 +41,8 @@ export default function HomeScreen() {
     try {
       const filter: DeviceFilter = {
         status: statusFilter,
+        osName: osFilter,
+        manufacturer: manufacturerFilter,
         searchQuery: searchQuery || undefined,
       };
       const data = await getDevices(filter);
@@ -53,20 +58,27 @@ export default function HomeScreen() {
 
   useEffect(() => {
     loadDevices();
-  }, [statusFilter]);
+  }, [statusFilter, osFilter, manufacturerFilter]);
 
   useEffect(() => {
+    let filtered = devices;
+    
+    // Apply search query filter
     if (searchQuery) {
-      const filtered = devices.filter(
+      const searchLower = searchQuery.toLowerCase();
+      filtered = filtered.filter(
         (device) =>
-          device.modelName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          device.osVersion.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          device.manufacturer.toLowerCase().includes(searchQuery.toLowerCase()),
+          device.modelName.toLowerCase().includes(searchLower) ||
+          device.osVersion.toLowerCase().includes(searchLower) ||
+          device.manufacturer.toLowerCase().includes(searchLower),
       );
-      setFilteredDevices(filtered);
-    } else {
-      setFilteredDevices(devices);
     }
+    
+    setFilteredDevices(filtered);
+    
+    // Extract unique manufacturers
+    const manufacturers = Array.from(new Set(devices.map(d => d.manufacturer).filter(m => m)));
+    setUniqueManufacturers(manufacturers.sort());
   }, [searchQuery, devices]);
 
   const handleRefresh = () => {
@@ -130,16 +142,48 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* Filter Button */}
-        <Pressable
-          style={[styles.filterButton, { backgroundColor: cardColor }]}
-          onPress={toggleStatusFilter}
-        >
-          <IconSymbol name="line.3.horizontal.decrease.circle" size={20} color={tintColor} />
-          <ThemedText style={[styles.filterText, { color: tintColor }]}>
-            {getFilterLabel()}
-          </ThemedText>
-        </Pressable>
+        {/* Filter Buttons */}
+        <View style={styles.filterButtonsContainer}>
+          <Pressable
+            style={[styles.filterButton, { backgroundColor: cardColor }]}
+            onPress={toggleStatusFilter}
+          >
+            <IconSymbol name="line.3.horizontal.decrease.circle" size={20} color={tintColor} />
+            <ThemedText style={[styles.filterText, { color: tintColor }]}>
+              {getFilterLabel()}
+            </ThemedText>
+          </Pressable>
+
+          <Pressable
+            style={[styles.filterButton, { backgroundColor: cardColor }, osFilter && styles.filterButtonActive]}
+            onPress={() => setOsFilter(osFilter === "Android" ? undefined : "Android")}
+          >
+            <ThemedText style={[styles.filterText, { color: osFilter === "Android" ? tintColor : textSecondary }]}>
+              {osFilter === "Android" ? "Android ✓" : "Android"}
+            </ThemedText>
+          </Pressable>
+
+          <Pressable
+            style={[styles.filterButton, { backgroundColor: cardColor }, osFilter === "iOS" && styles.filterButtonActive]}
+            onPress={() => setOsFilter(osFilter === "iOS" ? undefined : "iOS")}
+          >
+            <ThemedText style={[styles.filterText, { color: osFilter === "iOS" ? tintColor : textSecondary }]}>
+              {osFilter === "iOS" ? "iOS ✓" : "iOS"}
+            </ThemedText>
+          </Pressable>
+
+          {uniqueManufacturers.map((manufacturer) => (
+            <Pressable
+              key={manufacturer}
+              style={[styles.filterButton, { backgroundColor: cardColor }, manufacturerFilter === manufacturer && styles.filterButtonActive]}
+              onPress={() => setManufacturerFilter(manufacturerFilter === manufacturer ? undefined : manufacturer)}
+            >
+              <ThemedText style={[styles.filterText, { color: manufacturerFilter === manufacturer ? tintColor : textSecondary }]}>
+                {manufacturerFilter === manufacturer ? `${manufacturer} ✓` : manufacturer}
+              </ThemedText>
+            </Pressable>
+          ))}
+        </View>
       </View>
 
       {loading ? (
@@ -225,6 +269,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     lineHeight: 20,
+  },
+  filterButtonsContainer: {
+    flexDirection: "row",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  filterButtonActive: {
+    borderWidth: 2,
   },
   loadingContainer: {
     flex: 1,
