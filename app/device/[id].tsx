@@ -14,7 +14,7 @@ import { ThemedView } from "@/components/themed-view";
 import { StatusBadge } from "@/components/status-badge";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
-import { getDevice, borrowDevice, returnDevice } from "@/services/device-service";
+import { getDevice, borrowDevice, returnDevice, deleteDevice } from "@/services/device-service";
 import { Device, DeviceStatus } from "@/types/device";
 
 export default function DeviceDetailScreen() {
@@ -64,6 +64,35 @@ export default function DeviceDetailScreen() {
           } catch (error: any) {
             console.error("Failed to borrow device:", error);
             Alert.alert("エラー", error.message || "端末の貸出に失敗しました");
+          } finally {
+            setActionLoading(false);
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleDelete = async () => {
+    if (!device) return;
+
+    Alert.alert("確認", `${device.modelName}を削除しますか?\nこの操作は取り消せません。`, [
+      { text: "キャンセル", style: "cancel" },
+      {
+        text: "削除",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            setActionLoading(true);
+            await deleteDevice(device.id);
+            Alert.alert("成功", "端末を削除しました", [
+              {
+                text: "OK",
+                onPress: () => router.back(),
+              },
+            ]);
+          } catch (error: any) {
+            console.error("Failed to delete device:", error);
+            Alert.alert("エラー", error.message || "端末の削除に失敗しました");
           } finally {
             setActionLoading(false);
           }
@@ -220,6 +249,18 @@ export default function DeviceDetailScreen() {
             <ThemedText style={styles.actionButtonText}>他のユーザーが使用中</ThemedText>
           </View>
         )}
+
+        <Pressable
+          style={[styles.actionButton, { backgroundColor: errorColor }]}
+          onPress={handleDelete}
+          disabled={actionLoading}
+        >
+          {actionLoading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <ThemedText style={styles.actionButtonText}>削除</ThemedText>
+          )}
+        </Pressable>
       </View>
     </ThemedView>
   );

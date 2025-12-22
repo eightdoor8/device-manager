@@ -5,6 +5,7 @@ import {
   getDoc,
   addDoc,
   updateDoc,
+  deleteDoc,
   query,
   where,
   orderBy,
@@ -218,6 +219,40 @@ export async function returnDevice(deviceId: string, userId: string): Promise<vo
     console.log("[DeviceService] Device returned successfully");
   } catch (error) {
     console.error("[DeviceService] Error returning device:", error);
+    throw error;
+  }
+}
+
+/**
+ * Check if a device with the same UUID already exists
+ */
+export async function checkDeviceDuplicate(uuid: string): Promise<boolean> {
+  try {
+    console.log("[DeviceService] Checking for duplicate device with UUID:", uuid);
+    const devicesRef = collection(db, DEVICES_COLLECTION);
+    const q = query(devicesRef, where("uuid", "==", uuid));
+
+    const querySnapshot = await getDocs(q);
+    const exists = querySnapshot.docs.length > 0;
+    console.log("[DeviceService] Duplicate check result:", exists);
+    return exists;
+  } catch (error) {
+    console.error("[DeviceService] Error checking for duplicate device:", error);
+    throw error;
+  }
+}
+
+/**
+ * Delete a device
+ */
+export async function deleteDevice(deviceId: string): Promise<void> {
+  try {
+    console.log("[DeviceService] Deleting device:", deviceId);
+    const deviceRef = doc(db, DEVICES_COLLECTION, deviceId);
+    await deleteDoc(deviceRef);
+    console.log("[DeviceService] Device deleted successfully");
+  } catch (error) {
+    console.error("[DeviceService] Error deleting device:", error);
     throw error;
   }
 }

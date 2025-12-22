@@ -17,7 +17,7 @@ import { ThemedView } from "@/components/themed-view";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
 import { getCurrentDeviceInfo, isPhysicalDevice } from "@/utils/device-info";
-import { registerDevice } from "@/services/device-service";
+import { registerDevice, checkDeviceDuplicate } from "@/services/device-service";
 import { DeviceFormData } from "@/types/device";
 
 export default function RegisterDeviceScreen() {
@@ -97,6 +97,17 @@ export default function RegisterDeviceScreen() {
 
     try {
       setSubmitting(true);
+      
+      // Check for duplicate device
+      console.log("[RegisterDevice] Checking for duplicate device...");
+      const isDuplicate = await checkDeviceDuplicate(formData.uuid);
+      if (isDuplicate) {
+        console.log("[RegisterDevice] Device already registered");
+        Alert.alert("注意", "この端末は既に登録されています");
+        setSubmitting(false);
+        return;
+      }
+      
       console.log("[RegisterDevice] Calling registerDevice...");
       const deviceId = await registerDevice(formData, user.id);
       console.log("[RegisterDevice] Device registered successfully:", deviceId);
