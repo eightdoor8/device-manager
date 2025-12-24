@@ -16,6 +16,7 @@ import { useThemeColor } from "@/hooks/use-theme-color";
 import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
 import { getDevice, borrowDevice, returnDevice, deleteDevice } from "@/services/device-service";
 import { Device, DeviceStatus } from "@/types/device";
+import { useDeviceContext } from "@/contexts/DeviceContext";
 
 export default function DeviceDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -48,6 +49,8 @@ export default function DeviceDetailScreen() {
     }
   };
 
+  const { updateDevice } = useDeviceContext();
+
   const handleBorrow = async () => {
     if (!device || !user) return;
 
@@ -56,13 +59,28 @@ export default function DeviceDetailScreen() {
       {
         text: "借りる",
         onPress: async () => {
+          const originalDevice = device;
           try {
             setActionLoading(true);
+            // 楽観的更新：ローカル状態を即座に更新
+            const updatedDevice: Device = {
+              ...device,
+              status: "in_use" as DeviceStatus,
+              currentUserId: user.id,
+              currentUserName: user.name || user.email,
+              borrowedAt: new Date(),
+              updatedAt: new Date(),
+            };
+            setDevice(updatedDevice);
+            updateDevice(updatedDevice);
+
+            // サーバーに送信
             await borrowDevice(device.id, user.id, user.name || user.email);
-            await loadDevice();
             Alert.alert("成功", "端末を借りました");
           } catch (error: any) {
             console.error("Failed to borrow device:", error);
+            // エラー時はロールバック
+            setDevice(originalDevice);
             Alert.alert("エラー", error.message || "端末の貸出に失敗しました");
           } finally {
             setActionLoading(false);
@@ -71,6 +89,8 @@ export default function DeviceDetailScreen() {
       },
     ]);
   };
+
+  const { removeDevice } = useDeviceContext();
 
   const handleDelete = async () => {
     if (!device) return;
@@ -83,6 +103,10 @@ export default function DeviceDetailScreen() {
         onPress: async () => {
           try {
             setActionLoading(true);
+            // 楽観的更新：ローカル状態から即座に削除
+            removeDevice(device.id);
+
+            // サーバーに送信
             await deleteDevice(device.id);
             Alert.alert("成功", "端末を削除しました", [
               {
@@ -92,6 +116,8 @@ export default function DeviceDetailScreen() {
             ]);
           } catch (error: any) {
             console.error("Failed to delete device:", error);
+            // エラー時はロールバック
+            await loadDevice();
             Alert.alert("エラー", error.message || "端末の削除に失敗しました");
           } finally {
             setActionLoading(false);
@@ -109,13 +135,28 @@ export default function DeviceDetailScreen() {
       {
         text: "返却",
         onPress: async () => {
+          const originalDevice = device;
           try {
             setActionLoading(true);
+            // 楽観的更新：ローカル状態を即座に更新
+            const updatedDevice: Device = {
+              ...device,
+              status: "available" as DeviceStatus,
+              currentUserId: undefined,
+              currentUserName: undefined,
+              borrowedAt: undefined,
+              updatedAt: new Date(),
+            };
+            setDevice(updatedDevice);
+            updateDevice(updatedDevice);
+
+            // サーバーに送信
             await returnDevice(device.id, user.id);
-            await loadDevice();
             Alert.alert("成功", "端末を返却しました");
           } catch (error: any) {
             console.error("Failed to return device:", error);
+            // エラー時はロールバック
+            setDevice(originalDevice);
             Alert.alert("エラー", error.message || "端末の返却に失敗しました");
           } finally {
             setActionLoading(false);

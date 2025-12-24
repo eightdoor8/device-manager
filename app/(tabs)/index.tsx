@@ -16,16 +16,19 @@ import { DeviceCard } from "@/components/device-card";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
-import { getDevices } from "@/services/device-service";
-import { Device, DeviceFilter, DeviceStatus } from "@/types/device";
+import { useDeviceContext } from "@/contexts/DeviceContext";
+import { Device, DeviceStatus } from "@/types/device";
 
 export default function HomeScreen() {
-  const [devices, setDevices] = useState<Device[]>([]);
   const [filteredDevices, setFilteredDevices] = useState<Device[]>([]);
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<DeviceStatus | undefined>();
+  const [osFilter, setOsFilter] = useState<string>("all");
+  const [manufacturerFilter, setManufacturerFilter] = useState<string>("all");
+
+  // DeviceContextを使用
+  const { devices, loading, syncDevices } = useDeviceContext();
 
   const { user } = useFirebaseAuth();
   const insets = useSafeAreaInsets();
@@ -34,44 +37,51 @@ export default function HomeScreen() {
   const textColor = useThemeColor({}, "text");
   const textSecondary = useThemeColor({}, "textSecondary");
 
-  const loadDevices = async () => {
+  // 初回ロード時にデバイスを同期
+  useEffect(() => {
+    syncDevices();
+  }, []);
+
+  // フィルタと検索を適用
+  useEffect(() => {
+    let filtered = devices;
+
+    // ステータスフィルタ
+    if (statusFilter !== undefined) {
+      filtered = filtered.filter((d) => d.status === statusFilter);
+    }
+
+    // OSフィルタ
+    if (osFilter !== "all") {
+      filtered = filtered.filter((d) => d.osName === osFilter);
+    }
+
+    // メーカーフィルタ
+    if (manufacturerFilter !== "all") {
+      filtered = filtered.filter((d) => d.manufacturer === manufacturerFilter);
+    }
+
+    // 検索クエリ
+    if (searchQuery) {
+      const searchLower = searchQuery.toLowerCase();
+      filtered = filtered.filter((device) =>
+        device.modelName.toLowerCase().includes(searchLower) ||
+        device.manufacturer.toLowerCase().includes(searchLower) ||
+        device.osName.toLowerCase().includes(searchLower) ||
+        device.uuid.toLowerCase().includes(searchLower)
+      );
+    }
+
+    setFilteredDevices(filtered);
+  }, [devices, searchQuery, statusFilter, osFilter, manufacturerFilter]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
     try {
-      const filter: DeviceFilter = {
-        status: statusFilter,
-        searchQuery: searchQuery || undefined,
-      };
-      const data = await getDevices(filter);
-      setDevices(data);
-      setFilteredDevices(data);
-    } catch (error) {
-      console.error("Failed to load devices:", error);
+      await syncDevices();
     } finally {
-      setLoading(false);
       setRefreshing(false);
     }
-  };
-
-  useEffect(() => {
-    loadDevices();
-  }, [statusFilter]);
-
-  useEffect(() => {
-    if (searchQuery) {
-      const filtered = devices.filter(
-        (device) =>
-          device.modelName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          device.osVersion.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          device.manufacturer.toLowerCase().includes(searchQuery.toLowerCase()),
-      );
-      setFilteredDevices(filtered);
-    } else {
-      setFilteredDevices(devices);
-    }
-  }, [searchQuery, devices]);
-
-  const handleRefresh = () => {
-    setRefreshing(true);
-    loadDevices();
   };
 
   const handleRegisterDevice = () => {
@@ -86,6 +96,20 @@ export default function HomeScreen() {
     } else {
       setStatusFilter(undefined);
     }
+  };
+
+  const getUniqueOSNames = (): string[] => {
+    const osNames = devices
+      .map((d) => d.osName)
+      .filter((os, index, self) => os && self.indexOf(os) === index);
+    return osNames.sort();
+  };
+
+  const getUniqueManufacturers = (): string[] => {
+    const manufacturers = devices
+      .map((d) => d.manufacturer)
+      .filter((m, index, self) => m && self.indexOf(m) === index);
+    return manufacturers.sort();
   };
 
   const getFilterLabel = () => {

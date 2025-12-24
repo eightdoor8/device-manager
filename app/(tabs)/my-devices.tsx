@@ -6,12 +6,11 @@ import { ThemedView } from "@/components/themed-view";
 import { DeviceCard } from "@/components/device-card";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
+import { useUserDevicesRealtime } from "@/hooks/use-devices-realtime";
 import { getDevicesByUser } from "@/services/device-service";
 import { Device } from "@/types/device";
 
 export default function MyDevicesScreen() {
-  const [devices, setDevices] = useState<Device[]>([]);
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const { user } = useFirebaseAuth();
@@ -19,26 +18,15 @@ export default function MyDevicesScreen() {
   const tintColor = useThemeColor({}, "tint");
   const textSecondary = useThemeColor({}, "textSecondary");
 
-  const loadDevices = async () => {
-    if (!user) return;
-    try {
-      const data = await getDevicesByUser(user.id);
-      setDevices(data);
-    } catch (error) {
-      console.error("Failed to load my devices:", error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
+  const { devices, loading, error } = useUserDevicesRealtime(user?.id || "");
 
   useEffect(() => {
-    loadDevices();
-  }, [user]);
+    setRefreshing(false);
+  }, [devices]);
 
   const handleRefresh = () => {
     setRefreshing(true);
-    loadDevices();
+    setTimeout(() => setRefreshing(false), 500);
   };
 
   return (

@@ -18,6 +18,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { trpc, createTRPCClient } from "@/lib/trpc";
 import { initManusRuntime, subscribeSafeAreaInsets } from "@/lib/manus-runtime";
 import { AuthGuard } from "@/components/auth-guard";
+import { DeviceProvider } from "@/contexts/DeviceContext";
 
 const DEFAULT_WEB_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 const DEFAULT_WEB_FRAME: Rect = { x: 0, y: 0, width: 0, height: 0 };
@@ -77,17 +78,19 @@ export default function RootLayout() {
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
           <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-            <AuthGuard>
-              <Stack>
-                <Stack.Screen name="login" options={{ headerShown: false }} />
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen name="register-device" options={{ title: "端末登録", headerBackTitle: "戻る" }} />
-                <Stack.Screen name="device/[id]" options={{ title: "端末詳細", headerBackTitle: "戻る" }} />
-                <Stack.Screen name="modal" options={{ presentation: "modal", title: "Modal" }} />
-                <Stack.Screen name="oauth/callback" options={{ headerShown: false }} />
-              </Stack>
-              <StatusBar style="auto" />
-            </AuthGuard>
+            <DeviceProvider>
+              <AuthGuard>
+                <Stack>
+                  <Stack.Screen name="login" options={{ headerShown: false }} />
+                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                  <Stack.Screen name="register-device" options={{ title: "端末登録", headerBackTitle: "戻る" }} />
+                  <Stack.Screen name="device/[id]" options={{ title: "端末詳細", headerBackTitle: "戻る" }} />
+                  <Stack.Screen name="modal" options={{ presentation: "modal", title: "Modal" }} />
+                  <Stack.Screen name="oauth/callback" options={{ headerShown: false }} />
+                </Stack>
+                <StatusBar style="auto" />
+              </AuthGuard>
+            </DeviceProvider>
           </ThemeProvider>
         </QueryClientProvider>
       </trpc.Provider>
