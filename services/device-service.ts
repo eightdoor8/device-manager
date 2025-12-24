@@ -62,8 +62,7 @@ export async function getDevices(filter?: DeviceFilter): Promise<Device[]> {
       constraints.push(where("manufacturer", "==", filter.manufacturer));
     }
 
-    // Add ordering
-    constraints.push(orderBy("updatedAt", "desc"));
+    // Ordering is handled client-side after filtering
 
     const q = query(devicesRef, ...constraints);
     const querySnapshot = await getDocs(q);
@@ -79,6 +78,19 @@ export async function getDevices(filter?: DeviceFilter): Promise<Device[]> {
           device.osVersion.toLowerCase().includes(searchLower) ||
           device.manufacturer.toLowerCase().includes(searchLower),
       );
+    }
+
+    // Sort by status (available first) when no status filter is applied
+    if (!filter?.status) {
+      devices.sort((a, b) => {
+        if (a.status === "available" && b.status !== "available") return -1;
+        if (a.status !== "available" && b.status === "available") return 1;
+        // If same status, sort by updatedAt (descending)
+        return (b.updatedAt?.getTime() || 0) - (a.updatedAt?.getTime() || 0);
+      });
+    } else {
+      // Sort by updatedAt (descending) when status filter is applied
+      devices.sort((a, b) => (b.updatedAt?.getTime() || 0) - (a.updatedAt?.getTime() || 0));
     }
 
     return devices;
