@@ -49,7 +49,7 @@ export default function DeviceDetailScreen() {
     }
   };
 
-  const { updateDevice } = useDeviceContext();
+  const { updateDevice, syncSingleDevice } = useDeviceContext();
 
   const handleBorrow = async () => {
     if (!device || !user) return;
@@ -76,6 +76,8 @@ export default function DeviceDetailScreen() {
 
             // サーバーに送信
             await borrowDevice(device.id, user.id, user.name || user.email);
+            // 操作完了後に該当端末のデータを同期
+            await syncSingleDevice(device.id);
             Alert.alert("成功", "端末を借りました");
           } catch (error: any) {
             console.error("Failed to borrow device:", error);
@@ -152,6 +154,8 @@ export default function DeviceDetailScreen() {
 
             // サーバーに送信
             await returnDevice(device.id, user.id);
+            // 操作完了後に該当端末のデータを同期
+            await syncSingleDevice(device.id);
             Alert.alert("成功", "端末を返却しました");
           } catch (error: any) {
             console.error("Failed to return device:", error);

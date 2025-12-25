@@ -129,3 +129,17 @@
   - [x] 端末詳細画面で楽観的更新を実装
   - [x] マイデバイス画面でDeviceContextを使用
   - [x] 追加・ステータス変更・削除時に即座に画面更新
+
+## イベント駆動型更新実装（現在対応中）
+- [x] DeviceContextの定期同期廃止
+  - [x] 10秒ごとの定期同期を削除
+  - [x] syncSingleDeviceメソッドを追加
+- [x] 端末詳細画面での操作完了後同期
+  - [x] handleBorrow完了後にsyncSingleDeviceを呼び出し
+  - [x] handleReturn完了後にsyncSingleDeviceを呼び出し
+- [x] 端末登録画面での登録完了後同期
+  - [x] 登録完了後にsyncDevicesを呼び出し
+- [x] マイデバイス画面のDeviceContext統合
+  - [x] useUserDevicesRealtimeを削除
+  - [x] DeviceContextを使用するように変更
+  - [x] 自分が借りている端末のみフィルタ

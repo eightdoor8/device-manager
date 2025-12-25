@@ -18,6 +18,7 @@ import { useThemeColor } from "@/hooks/use-theme-color";
 import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
 import { getCurrentDeviceInfo, isPhysicalDevice } from "@/utils/device-info";
 import { registerDevice, checkDeviceDuplicate } from "@/services/device-service";
+import { useDeviceContext } from "@/contexts/DeviceContext";
 import { DeviceFormData } from "@/types/device";
 
 export default function RegisterDeviceScreen() {
@@ -36,6 +37,7 @@ export default function RegisterDeviceScreen() {
   });
 
   const { user } = useFirebaseAuth();
+  const { syncDevices } = useDeviceContext();
   const insets = useSafeAreaInsets();
   const tintColor = useThemeColor({}, "tint");
   const cardColor = useThemeColor({}, "card");
@@ -111,6 +113,8 @@ export default function RegisterDeviceScreen() {
       console.log("[RegisterDevice] Calling registerDevice...");
       const deviceId = await registerDevice(formData, user.id);
       console.log("[RegisterDevice] Device registered successfully:", deviceId);
+      // 登録完了後に全端末データを同期
+      await syncDevices();
       Alert.alert("成功", "端末を登録しました", [
         {
           text: "OK",

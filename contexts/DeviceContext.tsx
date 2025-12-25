@@ -9,6 +9,7 @@ interface DeviceContextType {
   removeDevice: (deviceId: string) => void;
   addDevice: (device: Device) => void;
   syncDevices: () => Promise<void>;
+  syncSingleDevice: (deviceId: string) => Promise<void>;
   loading: boolean;
   lastSyncTime: number;
 }
@@ -36,6 +37,24 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // 単一デバイスを同期（操作完了後に該当デバイスのみ取得）
+  const syncSingleDevice = useCallback(async (deviceId: string) => {
+    try {
+      console.log('[DeviceContext] Syncing single device:', deviceId);
+      const data = await getDevices({});
+      // 該当デバイスを探して更新
+      const updatedDevice = data.find((d) => d.id === deviceId);
+      if (updatedDevice) {
+        setDevices((prev) =>
+          prev.map((d) => (d.id === deviceId ? updatedDevice : d))
+        );
+        console.log('[DeviceContext] Single device sync completed:', deviceId);
+      }
+    } catch (error) {
+      console.error('[DeviceContext] Single device sync error:', error);
+    }
+  }, []);
+
   // ローカル状態を更新
   const updateDevice = useCallback((updatedDevice: Device) => {
     console.log('[DeviceContext] Updating device:', updatedDevice.id);
@@ -56,14 +75,7 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
     setDevices((prev) => [device, ...prev]);
   }, []);
 
-  // 定期的に同期（10秒ごと）
-  useEffect(() => {
-    const interval = setInterval(() => {
-      syncDevices();
-    }, 10000);
-
-    return () => clearInterval(interval);
-  }, [syncDevices]);
+  // 定期同期は廃止（イベント駆動型に変更）
 
   const value: DeviceContextType = {
     devices,
@@ -72,6 +84,7 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
     removeDevice,
     addDevice,
     syncDevices,
+    syncSingleDevice,
     loading,
     lastSyncTime,
   };

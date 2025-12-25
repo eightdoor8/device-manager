@@ -6,8 +6,7 @@ import { ThemedView } from "@/components/themed-view";
 import { DeviceCard } from "@/components/device-card";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
-import { useUserDevicesRealtime } from "@/hooks/use-devices-realtime";
-import { getDevicesByUser } from "@/services/device-service";
+import { useDeviceContext } from "@/contexts/DeviceContext";
 import { Device } from "@/types/device";
 
 export default function MyDevicesScreen() {
@@ -18,7 +17,10 @@ export default function MyDevicesScreen() {
   const tintColor = useThemeColor({}, "tint");
   const textSecondary = useThemeColor({}, "textSecondary");
 
-  const { devices, loading, error } = useUserDevicesRealtime(user?.id || "");
+  const { devices: allDevices, loading } = useDeviceContext();
+  
+  // 自分が借りている端末のみフィルタ
+  const devices = allDevices.filter((d) => d.currentUserId === user?.id);
 
   useEffect(() => {
     setRefreshing(false);
