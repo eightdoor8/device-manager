@@ -41,7 +41,8 @@ try {
   }
 } catch (error) {
   console.error("[Firebase] Initialization error:", error);
-  throw error;
+  // Don't throw - allow app to continue with Firebase unavailable
+  // This prevents the entire app from crashing if Firebase config is missing
 }
 
 export { app, auth, db, isFirebaseConfigured };
