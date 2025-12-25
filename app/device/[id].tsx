@@ -218,7 +218,6 @@ export default function DeviceDetailScreen() {
 
           <DetailRow label="OS" value={`${device.osName} ${device.osVersion}`} />
           <DetailRow label="メーカー" value={device.manufacturer} />
-          <DetailRow label="内部モデルID" value={device.internalModelId} />
           {device.screenSize && <DetailRow label="画面サイズ" value={device.screenSize} />}
           {device.physicalMemory && <DetailRow label="物理メモリ" value={device.physicalMemory} />}
           <DetailRow label="UUID" value={device.uuid} />

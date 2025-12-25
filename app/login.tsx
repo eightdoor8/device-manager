@@ -152,9 +152,11 @@ export default function LoginScreen() {
                 onPress={() => setShowPassword(!showPassword)}
                 disabled={loading}
               >
-                <ThemedText style={[styles.passwordToggleText, { color: textSecondary }]}>
-                  {showPassword ? "隠す" : "表示"}
-                </ThemedText>
+                <IconSymbol
+                  name={showPassword ? "eye.slash" : "eye"}
+                  size={20}
+                  color={textSecondary}
+                />
               </Pressable>
             </View>
 

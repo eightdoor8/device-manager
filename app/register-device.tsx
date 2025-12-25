@@ -165,12 +165,6 @@ export default function RegisterDeviceScreen() {
             端末登録
           </ThemedText>
 
-          <View style={styles.requiredNote}>
-            <ThemedText style={[styles.requiredNoteText, { color: textSecondary }]}>
-              <ThemedText style={{ color: "#FF3B30" }}>*必須</ThemedText>、上記以外は任意
-            </ThemedText>
-          </View>
-
           <ThemedText style={[styles.sectionTitle, { color: textSecondary }]}>
             自動検出情報
           </ThemedText>
