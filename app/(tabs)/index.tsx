@@ -72,6 +72,12 @@ export default function HomeScreen() {
       );
     }
 
+    // ソート処理：利用可 → 貸出中の順
+    filtered = filtered.sort((a, b) => {
+      const statusOrder = { [DeviceStatus.AVAILABLE]: 0, [DeviceStatus.IN_USE]: 1 };
+      return statusOrder[a.status] - statusOrder[b.status];
+    });
+
     setFilteredDevices(filtered);
   }, [devices, searchQuery, statusFilter, osFilter, manufacturerFilter]);
 
