@@ -295,17 +295,23 @@ export default function DeviceDetailScreen() {
           </View>
         )}
 
-        <Pressable
-          style={[styles.actionButton, { backgroundColor: errorColor }]}
-          onPress={handleDelete}
-          disabled={actionLoading}
-        >
-          {actionLoading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <ThemedText style={styles.actionButtonText}>削除</ThemedText>
-          )}
-        </Pressable>
+        {device?.status === "available" ? (
+          <Pressable
+            style={[styles.actionButton, { backgroundColor: errorColor }]}
+            onPress={handleDelete}
+            disabled={actionLoading}
+          >
+            {actionLoading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <ThemedText style={styles.actionButtonText}>削除</ThemedText>
+            )}
+          </Pressable>
+        ) : (
+          <View style={[styles.actionButton, { backgroundColor: "#BDBDBD" }]}>
+            <ThemedText style={styles.actionButtonText}>貸出中の端末は削除不可</ThemedText>
+          </View>
+        )}
       </View>
     </ThemedView>
   );

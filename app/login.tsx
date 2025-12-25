@@ -16,16 +16,19 @@ import { ThemedView } from "@/components/themed-view";
 import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { Image } from "expo-image";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { signIn, signUp, loading } = useFirebaseAuth();
   const insets = useSafeAreaInsets();
 
   const tintColor = useThemeColor({}, "tint");
   const textColor = useThemeColor({}, "text");
+  const textSecondary = useThemeColor({}, "textSecondary");
   const cardColor = useThemeColor({}, "card");
 
   const handleSubmit = async () => {
@@ -83,9 +86,10 @@ export default function LoginScreen() {
         message = "パスワードは6文字以上である必要があります";
       } else if (error.code === "auth/too-many-requests") {
         message = "ログイン試行回数が多すぎます。しばらく後に再度お試しください";
-      } else if (error.message) {
-        message = error.message;
+      } else if (error.code === "auth/invalid-credential") {
+        message = "メールアドレスまたはパスワードが正しくありません";
       }
+      // Firebaseの詳細なエラーメッセージは表示しない
       Alert.alert("エラー", message);
     }
   };
@@ -133,15 +137,26 @@ export default function LoginScreen() {
               editable={!loading}
             />
 
-            <TextInput
-              style={[styles.input, { color: textColor, borderColor: tintColor }]}
-              placeholder="パスワード"
-              placeholderTextColor="#999"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              editable={!loading}
-            />
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={[styles.input, { color: textColor, borderColor: tintColor }]}
+                placeholder="パスワード"
+                placeholderTextColor="#999"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                editable={!loading}
+              />
+              <Pressable
+                style={styles.passwordToggle}
+                onPress={() => setShowPassword(!showPassword)}
+                disabled={loading}
+              >
+                <ThemedText style={[styles.passwordToggleText, { color: textSecondary }]}>
+                  {showPassword ? "隠す" : "表示"}
+                </ThemedText>
+              </Pressable>
+            </View>
 
             <Pressable
               style={[styles.button, { backgroundColor: tintColor }]}
@@ -239,5 +254,20 @@ const styles = StyleSheet.create({
   switchText: {
     fontSize: 14,
     lineHeight: 20,
+  },
+  passwordContainer: {
+    position: "relative",
+  },
+  passwordToggle: {
+    position: "absolute",
+    right: 16,
+    top: 0,
+    height: 48,
+    justifyContent: "center",
+    paddingHorizontal: 12,
+  },
+  passwordToggleText: {
+    fontSize: 14,
+    fontWeight: "500",
   },
 });

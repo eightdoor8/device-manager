@@ -24,6 +24,7 @@ import { DeviceFormData } from "@/types/device";
 export default function RegisterDeviceScreen() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [formData, setFormData] = useState<DeviceFormData>({
     modelName: "",
     internalModelId: "",
@@ -85,11 +86,19 @@ export default function RegisterDeviceScreen() {
     console.log("[RegisterDevice] Form data:", formData);
     console.log("[RegisterDevice] User:", user?.id);
 
-    if (!formData.modelName || !formData.osName || !formData.osVersion) {
+    // 必須項目の検証
+    const newErrors: Record<string, boolean> = {};
+    if (!formData.modelName) newErrors.modelName = true;
+    if (!formData.osName) newErrors.osName = true;
+    if (!formData.osVersion) newErrors.osVersion = true;
+
+    if (Object.keys(newErrors).length > 0) {
       console.log("[RegisterDevice] Missing required fields");
+      setErrors(newErrors);
       Alert.alert("エラー", "必須項目を入力してください");
       return;
     }
+    setErrors({});
 
     if (!user) {
       console.log("[RegisterDevice] User not found");
@@ -156,6 +165,12 @@ export default function RegisterDeviceScreen() {
             端末登録
           </ThemedText>
 
+          <View style={styles.requiredNote}>
+            <ThemedText style={[styles.requiredNoteText, { color: textSecondary }]}>
+              <ThemedText style={{ color: "#FF3B30" }}>*必須</ThemedText>、上記以外は任意
+            </ThemedText>
+          </View>
+
           <ThemedText style={[styles.sectionTitle, { color: textSecondary }]}>
             自動検出情報
           </ThemedText>
@@ -176,12 +191,7 @@ export default function RegisterDeviceScreen() {
               </ThemedText>
             </View>
 
-            <View style={styles.fieldContainer}>
-              <ThemedText style={styles.label}>内部モデルID</ThemedText>
-              <ThemedText style={[styles.valueText, { color: textDisabled }]}>
-                {formData.internalModelId}
-              </ThemedText>
-            </View>
+
 
             <View style={styles.fieldContainer}>
               <ThemedText style={styles.label}>メーカー</ThemedText>
@@ -214,11 +224,21 @@ export default function RegisterDeviceScreen() {
           {/* Editable fields */}
           <View style={[styles.card, { backgroundColor: cardColor }]}>
             <View style={styles.fieldContainer}>
-              <ThemedText style={styles.label}>機種名 *</ThemedText>
+              <View style={styles.labelContainer}>
+                <ThemedText style={styles.label}>機種名</ThemedText>
+                <ThemedText style={[styles.requiredBadge, { color: "#FF3B30" }]}>必須</ThemedText>
+              </View>
               <TextInput
-                style={[styles.input, { color: textColor, borderColor: tintColor }]}
+                style={[
+                  styles.input,
+                  { color: textColor, borderColor: errors.modelName ? "#FF3B30" : tintColor },
+                  errors.modelName && styles.inputError,
+                ]}
                 value={formData.modelName}
-                onChangeText={(text) => setFormData({ ...formData, modelName: text })}
+                onChangeText={(text) => {
+                  setFormData({ ...formData, modelName: text });
+                  setErrors({ ...errors, modelName: false });
+                }}
                 placeholder="例: iPhone 14 Pro Max"
                 placeholderTextColor={textSecondary}
               />
@@ -365,5 +385,26 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     lineHeight: 24,
+  },
+  labelContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  requiredBadge: {
+    fontSize: 12,
+    fontWeight: "600",
+    lineHeight: 16,
+  },
+  inputError: {
+    backgroundColor: "rgba(255, 59, 48, 0.05)",
+  },
+  requiredNote: {
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+  requiredNoteText: {
+    fontSize: 12,
+    lineHeight: 18,
   },
 });
