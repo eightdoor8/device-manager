@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import type { InsertUser } from "../drizzle/schema";
+import { users } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +90,106 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+/**
+ * Device queries
+ */
+import type { InsertDevice } from "../drizzle/schema";
+import { devices } from "../drizzle/schema";
+
+export async function getAllDevices() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(devices);
+}
+
+export async function getDeviceById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(devices).where(eq(devices.id, id));
+  return result[0] || null;
+}
+
+export async function getDeviceByUuid(uuid: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(devices).where(eq(devices.uuid, uuid));
+  return result[0] || null;
+}
+
+export async function createDevice(data: InsertDevice) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.insert(devices).values(data);
+  const created = await getDeviceByUuid(data.uuid);
+  return created?.id || 0;
+}
+
+export async function updateDevice(id: number, data: Partial<InsertDevice>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.update(devices).set(data).where(eq(devices.id, id));
+}
+
+export async function updateDeviceStatus(
+  id: number,
+  status: "available" | "in_use",
+  userId?: number,
+  userName?: string
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const updateData: any = { status };
+  if (status === "in_use") {
+    updateData.currentUserId = userId;
+    updateData.currentUserName = userName;
+    updateData.borrowedAt = new Date();
+  } else {
+    updateData.currentUserId = null;
+    updateData.currentUserName = null;
+    updateData.borrowedAt = null;
+  }
+  
+  await db.update(devices).set(updateData).where(eq(devices.id, id));
+}
+
+export async function deleteDevice(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.delete(devices).where(eq(devices.id, id));
+}
+
+export async function getAvailableDevices() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(devices).where(eq(devices.status, "available"));
+}
+
+export async function getDevicesByUser(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(devices).where(eq(devices.currentUserId, userId));
+}
+
+export async function getAllUsers() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(users);
+}
+
+export async function getUserById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(users).where(eq(users.id, id));
+  return result[0] || null;
+}
+
+export async function updateUserRole(userId: number, role: "user" | "admin") {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.update(users).set({ role }).where(eq(users.id, userId));
+}

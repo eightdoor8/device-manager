@@ -1,0 +1,20 @@
+CREATE TABLE `devices` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`modelName` varchar(255) NOT NULL,
+	`osName` varchar(100) NOT NULL,
+	`osVersion` varchar(100) NOT NULL,
+	`manufacturer` varchar(100) NOT NULL,
+	`screenSize` varchar(100),
+	`physicalMemory` varchar(100),
+	`uuid` varchar(255) NOT NULL,
+	`status` enum('available','in_use') NOT NULL DEFAULT 'available',
+	`currentUserId` int,
+	`currentUserName` varchar(255),
+	`borrowedAt` timestamp,
+	`memo` text,
+	`registeredBy` int NOT NULL,
+	`registeredAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `devices_id` PRIMARY KEY(`id`),
+	CONSTRAINT `devices_uuid_unique` UNIQUE(`uuid`)
+);

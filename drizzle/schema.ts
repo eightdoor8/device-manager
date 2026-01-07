@@ -25,4 +25,25 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-// TODO: Add your tables here
+// Devices table
+export const devices = mysqlTable("devices", {
+  id: int("id").autoincrement().primaryKey(),
+  modelName: varchar("modelName", { length: 255 }).notNull(),
+  osName: varchar("osName", { length: 100 }).notNull(),
+  osVersion: varchar("osVersion", { length: 100 }).notNull(),
+  manufacturer: varchar("manufacturer", { length: 100 }).notNull(),
+  screenSize: varchar("screenSize", { length: 100 }),
+  physicalMemory: varchar("physicalMemory", { length: 100 }),
+  uuid: varchar("uuid", { length: 255 }).notNull().unique(),
+  status: mysqlEnum("status", ["available", "in_use"]).default("available").notNull(),
+  currentUserId: int("currentUserId"),
+  currentUserName: varchar("currentUserName", { length: 255 }),
+  borrowedAt: timestamp("borrowedAt"),
+  memo: text("memo"),
+  registeredBy: int("registeredBy").notNull(),
+  registeredAt: timestamp("registeredAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Device = typeof devices.$inferSelect;
+export type InsertDevice = typeof devices.$inferInsert;
