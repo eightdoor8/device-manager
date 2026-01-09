@@ -14,7 +14,6 @@ interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
 }
@@ -76,43 +75,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const login = async (email: string, password: string) => {
-    try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "ログインに失敗しました");
-      }
-
-      const data = await response.json();
-      if (data.user) {
-        const backendUser = data.user;
-        const user: User = {
-          id: backendUser.id || backendUser.openId,
-          openId: backendUser.openId,
-          email: backendUser.email || "",
-          name: backendUser.name || "",
-          role: "user",
-          loginMethod: "email",
-          lastSignedIn: new Date().toISOString(),
-        };
-        setUser(user);
-        localStorage.setItem("admin_user", JSON.stringify(user));
-      }
-    } catch (error) {
-      console.error("Login failed:", error);
-      throw error;
-    }
-  };
-
   const logout = async () => {
     try {
       await fetch("/api/auth/logout", {
@@ -132,7 +94,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         loading,
-        login,
         logout,
         isAuthenticated: !!user,
       }}
