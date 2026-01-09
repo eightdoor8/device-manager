@@ -187,6 +187,13 @@ export async function getUserById(id: number) {
   return result[0] || null;
 }
 
+export async function getUserByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(users).where(eq(users.email, email));
+  return result[0] || null;
+}
+
 export async function updateUserRole(userId: number, role: "user" | "admin") {
   const db = await getDb();
   if (!db) throw new Error("Database not available");

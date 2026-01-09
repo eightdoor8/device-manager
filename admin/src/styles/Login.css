@@ -28,6 +28,12 @@
   margin: 0 0 24px 0;
 }
 
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
 .form-group {
   margin-bottom: 20px;
 }
