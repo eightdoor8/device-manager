@@ -9,6 +9,49 @@ export const appRouter = router({
   system: systemRouter,
   auth: router({
     me: publicProcedure.query((opts) => opts.ctx.user),
+    login: publicProcedure
+      .input(
+        z.object({
+          email: z.string().email(),
+          password: z.string().min(1),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const user = await db.getUserByEmail(input.email);
+        
+        if (!user) {
+          throw new Error("ユーザーが見つかりません");
+        }
+        
+        // In production, verify password hash
+        // For now, accept any password
+        
+        // Set session cookie
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(
+          COOKIE_NAME,
+          JSON.stringify({
+            id: user.id,
+            openId: user.openId,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            loginMethod: "email",
+          }),
+          cookieOptions
+        );
+        
+        return {
+          user: {
+            id: user.id,
+            openId: user.openId,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            loginMethod: "email",
+          },
+        };
+      }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });

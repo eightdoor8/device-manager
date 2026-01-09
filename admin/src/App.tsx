@@ -1,59 +1,105 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { TRPCProvider } from "./lib/trpc-provider";
-import { AuthProvider } from "./contexts/AuthContext";
-import { ProtectedRoute } from "./components/ProtectedRoute";
-import { Layout } from "./components/Layout";
-import { Login } from "./pages/Login";
-import { OAuthCallback } from "./pages/OAuthCallback";
-import { Dashboard } from "./pages/Dashboard";
-import { Users } from "./pages/Users";
-import { Devices } from "./pages/Devices";
-import "./App.css";
+import { useState } from 'react'
+import './App.css'
 
 function App() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'ログインに失敗しました')
+      }
+
+      const data = await response.json()
+      if (data.user) {
+        setIsLoggedIn(true)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'ログインに失敗しました')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleLogout = () => {
+    setIsLoggedIn(false)
+    setEmail('')
+    setPassword('')
+  }
+
+  if (isLoggedIn) {
+    return (
+      <div className="container">
+        <div className="card">
+          <h1>Device Manager</h1>
+          <p>ログイン成功！</p>
+          <p>メール: {email}</p>
+          <button onClick={handleLogout}>ログアウト</button>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <Router>
-      <AuthProvider>
-        <TRPCProvider>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/oauth/callback" element={<OAuthCallback />} />
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Dashboard />
-                  </Layout>
-                </ProtectedRoute>
-              }
+    <div className="container">
+      <div className="card">
+        <h1>Device Manager</h1>
+        <p className="subtitle">管理画面へログイン</p>
+
+        <form onSubmit={handleLogin}>
+          <div className="form-group">
+            <label htmlFor="email">メールアドレス</label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="メールアドレスを入力"
+              required
+              disabled={loading}
             />
-            <Route
-              path="/users"
-              element={
-                <ProtectedRoute requiredRole="admin">
-                  <Layout>
-                    <Users />
-                  </Layout>
-                </ProtectedRoute>
-              }
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="password">パスワード</label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="パスワードを入力"
+              required
+              disabled={loading}
             />
-            <Route
-              path="/devices"
-              element={
-                <ProtectedRoute requiredRole="admin">
-                  <Layout>
-                    <Devices />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </TRPCProvider>
-      </AuthProvider>
-    </Router>
-  );
+          </div>
+
+          {error && <div className="error-message">{error}</div>}
+
+          <button type="submit" disabled={loading}>
+            {loading ? 'ログイン中...' : 'ログイン'}
+          </button>
+        </form>
+      </div>
+    </div>
+  )
 }
 
-export default App;
+export default App
