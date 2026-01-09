@@ -28,7 +28,13 @@ function getDefaultApiBaseUrl(): string {
 
 export function getLoginUrl(): string {
   const redirectUri = `${env.apiBaseUrl}/api/oauth/callback`;
-  const state = encodeState(redirectUri);
+  
+  // Include frontend origin in state for backend to determine redirect target
+  // Format: {redirectUri}|{frontendOrigin}
+  // Example: https://3000-xxx/api/oauth/callback|https://5173-xxx
+  const frontendOrigin = typeof window !== "undefined" ? window.location.origin : "";
+  const stateData = `${redirectUri}|${frontendOrigin}`;
+  const state = encodeState(stateData);
 
   const url = new URL(`${env.portalUrl}/app-auth`);
   url.searchParams.set("appId", env.appId);
@@ -43,7 +49,7 @@ export function generateRandomState(): string {
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 }
 
-const encodeState = (value: string) => {
+export const encodeState = (value: string) => {
   if (typeof globalThis.btoa === "function") {
     return globalThis.btoa(value);
   }
@@ -52,6 +58,30 @@ const encodeState = (value: string) => {
     return BufferImpl.from(value, "utf-8").toString("base64");
   }
   return value;
+};
+
+export const decodeState = (value: string): { redirectUri: string; frontendOrigin: string } | null => {
+  try {
+    let decoded: string;
+    if (typeof globalThis.atob === "function") {
+      decoded = globalThis.atob(value);
+    } else {
+      const BufferImpl = (globalThis as Record<string, any>).Buffer;
+      if (BufferImpl) {
+        decoded = BufferImpl.from(value, "base64").toString("utf-8");
+      } else {
+        return null;
+      }
+    }
+
+    const [redirectUri, frontendOrigin] = decoded.split("|");
+    if (redirectUri && frontendOrigin) {
+      return { redirectUri, frontendOrigin };
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
 };
 
 export function decodeIdToken(idToken: string): { sub: string; email: string; name: string } {

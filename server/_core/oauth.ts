@@ -40,6 +40,19 @@ async function syncUser(userInfo: {
   );
 }
 
+function decodeState(state: string): { redirectUri: string; frontendOrigin: string } | null {
+  try {
+    const decoded = Buffer.from(state, "base64").toString("utf-8");
+    const [redirectUri, frontendOrigin] = decoded.split("|");
+    if (redirectUri && frontendOrigin) {
+      return { redirectUri, frontendOrigin };
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
 function buildUserResponse(
   user:
     | Awaited<ReturnType<typeof getUserByOpenId>>
@@ -83,13 +96,32 @@ export function registerOAuthRoutes(app: Express) {
       const cookieOptions = getSessionCookieOptions(req);
       res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
 
-      // Redirect to the frontend URL (Expo web on port 8081)
-      // Cookie is set with parent domain so it works across both 3000 and 8081 subdomains
-      const frontendUrl =
-        process.env.EXPO_WEB_PREVIEW_URL ||
-        process.env.EXPO_PACKAGER_PROXY_URL ||
-        "http://localhost:8081";
-      res.redirect(302, frontendUrl);
+      // Determine the frontend URL to redirect to
+      // Priority: state parameter (contains frontend origin) -> env vars -> default
+      let frontendUrl: string | null = null;
+      
+      // Try to extract frontend origin from state parameter
+      const decodedState = decodeState(state);
+      if (decodedState?.frontendOrigin) {
+        frontendUrl = decodedState.frontendOrigin;
+      }
+      
+      // Fallback to environment variables
+      if (!frontendUrl) {
+        frontendUrl =
+          process.env.EXPO_WEB_PREVIEW_URL ||
+          process.env.EXPO_PACKAGER_PROXY_URL ||
+          "http://localhost:8081";
+      }
+
+      // Redirect to the frontend URL with appropriate path
+      // If it is a web admin panel (port 5173), redirect to /dashboard
+      // If it is Expo web (port 8081), redirect to /
+      const redirectPath = frontendUrl.includes(":5173") ? "/dashboard" : "/";
+      const redirectUrl = `${frontendUrl}${redirectPath}`;
+      
+      console.log("[OAuth] Callback successful, redirecting to:", redirectUrl);
+      res.redirect(302, redirectUrl);
     } catch (error) {
       console.error("[OAuth] Callback failed", error);
       res.status(500).json({ error: "OAuth callback failed" });
