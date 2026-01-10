@@ -9,11 +9,63 @@ export const appRouter = router({
   system: systemRouter,
   auth: router({
     me: publicProcedure.query((opts) => opts.ctx.user),
+    register: publicProcedure
+      .input(
+        z.object({
+          email: z.string().email(),
+          password: z.string().min(6),
+          name: z.string().optional(),
+        })
+      )
+      .output(
+        z.object({
+          user: z.object({
+            id: z.number(),
+            openId: z.string(),
+            email: z.string().nullable(),
+            name: z.string().nullable(),
+            role: z.string(),
+          }),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const user = await db.createUserWithPassword(input.email, input.password, input.name);
+        
+        // Set session cookie
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(
+          COOKIE_NAME,
+          JSON.stringify({
+            id: user.id,
+            openId: user.openId,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            loginMethod: "email",
+          }),
+          cookieOptions
+        );
+        
+        return {
+          user,
+        };
+      }),
     login: publicProcedure
       .input(
         z.object({
           email: z.string().email(),
           password: z.string().min(1),
+        })
+      )
+      .output(
+        z.object({
+          user: z.object({
+            id: z.number(),
+            openId: z.string(),
+            email: z.string().nullable(),
+            name: z.string().nullable(),
+            role: z.string(),
+          }),
         })
       )
       .mutation(async ({ input, ctx }) => {

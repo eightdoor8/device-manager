@@ -54,6 +54,15 @@ async function startServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
+  // Debug middleware to log tRPC requests
+  app.use("/api/trpc", (req, res, next) => {
+    console.log("[tRPC] Method:", req.method);
+    console.log("[tRPC] URL:", req.url);
+    console.log("[tRPC] Body:", req.body);
+    console.log("[tRPC] Query:", req.query);
+    next();
+  });
+
   registerOAuthRoutes(app);
 
   app.get("/api/health", (_req, res) => {
@@ -65,6 +74,13 @@ async function startServer() {
     createExpressMiddleware({
       router: appRouter,
       createContext,
+      responseMeta() {
+        return {
+          headers: {
+            "x-custom-header": "true",
+          },
+        };
+      },
     }),
   );
 

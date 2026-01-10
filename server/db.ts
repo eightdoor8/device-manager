@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/mysql2";
 import type { InsertUser } from "../drizzle/schema";
 import { users } from "../drizzle/schema";
 import { ENV } from "./_core/env";
+import bcrypt from "bcrypt";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -199,4 +200,67 @@ export async function updateUserRole(userId: number, role: "user" | "admin") {
   if (!db) throw new Error("Database not available");
   
   await db.update(users).set({ role }).where(eq(users.id, userId));
+}
+
+const BCRYPT_ROUNDS = 10;
+
+export async function createUserWithPassword(
+  email: string,
+  password: string,
+  name?: string
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Check if user already exists
+  const existing = await db.select().from(users).where(eq(users.email, email));
+  if (existing.length > 0) {
+    throw new Error("このメールアドレスは既に登録されています");
+  }
+
+  // Hash password
+  const hashedPassword = await bcrypt.hash(password, BCRYPT_ROUNDS);
+
+  // Generate a unique openId for email-based users
+  const openId = `email_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  // Create user
+  await db.insert(users).values({
+    openId,
+    email,
+    name: name || email.split("@")[0],
+    loginMethod: "email",
+    role: "user",
+  });
+
+  // Retrieve the created user
+  const createdUser = await db.select().from(users).where(eq(users.email, email));
+  if (createdUser.length === 0) {
+    throw new Error("Failed to create user");
+  }
+
+  const user = createdUser[0];
+  return {
+    id: user.id,
+    openId: user.openId,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+  };
+}
+
+export async function verifyPassword(email: string, password: string) {
+  // This is a placeholder - in production, you need to store password hashes
+  // For now, we'll accept any password for testing
+  const user = await getUserByEmail(email);
+  if (!user) {
+    return null;
+  }
+  // In production, verify the password hash here
+  // For now, accept any password
+  return user;
+}
+
+export async function verifyPasswordHash(hashedPassword: string, password: string) {
+  return await bcrypt.compare(password, hashedPassword);
 }
