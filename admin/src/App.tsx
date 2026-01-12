@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
 import { trpc } from './lib/trpc'
 
@@ -11,6 +11,7 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [showRegister, setShowRegister] = useState(false)
+  const [isInitialized, setIsInitialized] = useState(false)
 
   const loginMutation = trpc.auth.login.useMutation()
   const registerMutation = trpc.auth.register.useMutation()
@@ -54,6 +55,19 @@ function App() {
 
   const logoutMutation = trpc.auth.logout.useMutation()
 
+  // Check if user is already logged in on mount
+  const { data: currentUser } = trpc.auth.me.useQuery()
+  
+  useEffect(() => {
+    if (!isInitialized && currentUser) {
+      setUser(currentUser)
+      setIsLoggedIn(true)
+      setIsInitialized(true)
+    } else if (!isInitialized && !currentUser) {
+      setIsInitialized(true)
+    }
+  }, [currentUser, isInitialized])
+
   const handleLogout = async () => {
     try {
       await logoutMutation.mutateAsync()
@@ -62,6 +76,7 @@ function App() {
       setEmail('')
       setPassword('')
       setName('')
+      setIsInitialized(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'ログアウトに失敗しました')
     }
@@ -78,12 +93,40 @@ function App() {
   if (isLoggedIn && user) {
     return (
       <div className="container">
-        <div className="card">
-          <h1>Device Manager</h1>
-          <p>ログイン成功！</p>
-          <p>ユーザー: {user.name || user.email}</p>
-          <p>ロール: {user.role}</p>
-          <button onClick={handleLogout}>ログアウト</button>
+        <div className="dashboard">
+          <div className="dashboard-header">
+            <h1>Device Manager</h1>
+            <button onClick={handleLogout} className="logout-button">ログアウト</button>
+          </div>
+
+          <div className="welcome-section">
+            <h2>ようこそ、{user.name || user.email}さん</h2>
+            <p>ロール: <strong>{user.role}</strong></p>
+          </div>
+
+          <div className="dashboard-content">
+            <h3>ダッシュボード</h3>
+            <div className="dashboard-grid">
+              <div className="dashboard-card">
+                <div className="card-icon">📱</div>
+                <h4>デバイス管理</h4>
+                <p>登録されているデバイスを管理します</p>
+                <button className="card-button">デバイス一覧を表示</button>
+              </div>
+              <div className="dashboard-card">
+                <div className="card-icon">👥</div>
+                <h4>ユーザー管理</h4>
+                <p>システムユーザーを管理します</p>
+                <button className="card-button">ユーザー一覧を表示</button>
+              </div>
+              <div className="dashboard-card">
+                <div className="card-icon">⚙️</div>
+                <h4>設定</h4>
+                <p>システム設定を変更します</p>
+                <button className="card-button">設定を開く</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     )

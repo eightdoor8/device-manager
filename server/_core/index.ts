@@ -51,17 +51,20 @@ async function startServer() {
     next();
   });
 
-  app.use(express.json({ limit: "50mb" }));
+  // Parse JSON body with debugging
+  app.use((req, res, next) => {
+    express.json({ limit: "50mb" })(req, res, (err) => {
+      if (err) {
+        console.error("[JSON Parse Error]", err);
+        return res.status(400).json({ error: "Invalid JSON" });
+      }
+      console.log("[Parsed Body]", req.body);
+      next();
+    });
+  });
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
-  // Debug middleware to log tRPC requests
-  app.use("/api/trpc", (req, res, next) => {
-    console.log("[tRPC] Method:", req.method);
-    console.log("[tRPC] URL:", req.url);
-    console.log("[tRPC] Body:", req.body);
-    console.log("[tRPC] Query:", req.query);
-    next();
-  });
+
 
   registerOAuthRoutes(app);
 
@@ -69,18 +72,18 @@ async function startServer() {
     res.json({ ok: true, timestamp: Date.now() });
   });
 
+  // Fallback route for debugging
+  app.all("/api/debug", (req, res) => {
+    console.log("[Debug Route] Method:", req.method);
+    console.log("[Debug Route] Body:", req.body);
+    res.json({ method: req.method, body: req.body });
+  });
+
   app.use(
     "/api/trpc",
     createExpressMiddleware({
       router: appRouter,
       createContext,
-      responseMeta() {
-        return {
-          headers: {
-            "x-custom-header": "true",
-          },
-        };
-      },
     }),
   );
 
