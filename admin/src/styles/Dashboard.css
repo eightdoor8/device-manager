@@ -1,9 +1,11 @@
 .dashboard-container {
-  padding: 48px 30px;
+  padding: 48px 30px 60px 30px;
   max-width: 1600px;
   margin: 0 auto;
   background: linear-gradient(135deg, #f8f9fa 0%, #f0f4f8 100%);
   min-height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
 }
 
 .dashboard-header {

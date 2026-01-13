@@ -151,7 +151,7 @@ export async function getDevicesFromFirestore() {
       };
       
       devices.push({
-        id: parseInt(doc.id, 10) || 0,
+        id: 0, // Will be assigned sequentially after sorting
         modelName: data.modelName || "",
         osName: data.osName || "",
         osVersion: data.osVersion || "",
@@ -168,6 +168,14 @@ export async function getDevicesFromFirestore() {
         registeredAt: convertTimestamp(data.registeredAt),
         updatedAt: convertTimestamp(data.updatedAt),
       });
+    });
+
+    // Sort devices by registeredAt (oldest first)
+    devices.sort((a, b) => a.registeredAt.getTime() - b.registeredAt.getTime());
+    
+    // Assign sequential IDs based on registration order
+    devices.forEach((device, index) => {
+      device.id = index + 1;
     });
 
     console.log("[Firestore] Retrieved devices from Firestore:", devices.length, "devices");
@@ -213,13 +221,21 @@ export async function getUsersFromFirestore() {
       };
       
       users.push({
-        id: parseInt(doc.id, 10) || 0,
+        id: 0, // Will be assigned sequentially after sorting
         name: data.name || "",
         email: data.email || "",
         role: data.role || "user",
         createdAt: convertTimestamp(data.createdAt),
         updatedAt: convertTimestamp(data.updatedAt),
       });
+    });
+
+    // Sort users by createdAt (oldest first)
+    users.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+    
+    // Assign sequential IDs based on creation order
+    users.forEach((user, index) => {
+      user.id = index + 1;
     });
 
     console.log("[Firestore] Retrieved users from Firestore:", users.length, "users");
