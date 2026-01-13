@@ -134,6 +134,22 @@ export async function getDevicesFromFirestore() {
     const devices: any[] = [];
     devicesSnapshot.forEach((doc) => {
       const data = doc.data();
+      
+      // Helper function to convert Firestore Timestamp to Date
+      const convertTimestamp = (timestamp: any): Date => {
+        if (!timestamp) return new Date();
+        if (timestamp.toDate && typeof timestamp.toDate === 'function') {
+          return timestamp.toDate();
+        }
+        if (timestamp instanceof Date) {
+          return timestamp;
+        }
+        if (typeof timestamp === 'number') {
+          return new Date(timestamp);
+        }
+        return new Date();
+      };
+      
       devices.push({
         id: parseInt(doc.id, 10) || 0,
         modelName: data.modelName || "",
@@ -146,11 +162,11 @@ export async function getDevicesFromFirestore() {
         status: data.status || "available",
         currentUserId: data.currentUserId || null,
         currentUserName: data.currentUserName || null,
-        borrowedAt: data.borrowedAt ? new Date(data.borrowedAt) : null,
+        borrowedAt: data.borrowedAt ? convertTimestamp(data.borrowedAt) : null,
         memo: data.memo || "",
         registeredBy: data.registeredBy || "",
-        registeredAt: data.registeredAt ? new Date(data.registeredAt) : new Date(),
-        updatedAt: data.updatedAt ? new Date(data.updatedAt) : new Date(),
+        registeredAt: convertTimestamp(data.registeredAt),
+        updatedAt: convertTimestamp(data.updatedAt),
       });
     });
 
@@ -180,13 +196,29 @@ export async function getUsersFromFirestore() {
     const users: any[] = [];
     usersSnapshot.forEach((doc) => {
       const data = doc.data();
+      
+      // Helper function to convert Firestore Timestamp to Date
+      const convertTimestamp = (timestamp: any): Date => {
+        if (!timestamp) return new Date();
+        if (timestamp.toDate && typeof timestamp.toDate === 'function') {
+          return timestamp.toDate();
+        }
+        if (timestamp instanceof Date) {
+          return timestamp;
+        }
+        if (typeof timestamp === 'number') {
+          return new Date(timestamp);
+        }
+        return new Date();
+      };
+      
       users.push({
         id: parseInt(doc.id, 10) || 0,
         name: data.name || "",
         email: data.email || "",
         role: data.role || "user",
-        createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
-        updatedAt: data.updatedAt ? new Date(data.updatedAt) : new Date(),
+        createdAt: convertTimestamp(data.createdAt),
+        updatedAt: convertTimestamp(data.updatedAt),
       });
     });
 
