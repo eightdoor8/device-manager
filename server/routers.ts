@@ -4,7 +4,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import * as db from "./db";
-import { getDevicesFromFirestore, getUsersFromFirestore, getDevicesFromFirebase, getUsersFromFirebase } from "./_core/firebase";
+import { getDevicesFromFirestore, getUsersFromFirestore, getDevicesFromFirebase, getUsersFromFirebase, updateUserRoleInFirestore } from "./_core/firebase";
 
 export const appRouter = router({
   system: systemRouter,
@@ -154,12 +154,16 @@ export const appRouter = router({
       }),
 
     updateRole: protectedProcedure
-      .input(z.object({ userId: z.number(), role: z.enum(["user", "admin"]) }))
+      .input(z.object({ userId: z.number(), role: z.enum(["user", "admin"]), email: z.string().optional() }))
       .mutation(async ({ input, ctx }) => {
         if (ctx.user?.role !== "admin") {
           throw new Error("Unauthorized");
         }
-        await db.updateUserRole(input.userId, input.role);
+        if (input.email) {
+          await updateUserRoleInFirestore(input.email, input.role);
+        } else {
+          await db.updateUserRole(input.userId, input.role);
+        }
         return { success: true };
       }),
   }),

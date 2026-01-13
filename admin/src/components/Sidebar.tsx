@@ -11,7 +11,7 @@ const navItems: NavItem[] = [
   { path: "/", label: "ダッシュボード", icon: "📊" },
   { path: "/devices", label: "端末管理", icon: "📱" },
   { path: "/users", label: "ユーザー管理", icon: "👥" },
-  { path: "/settings", label: "設定", icon: "⚙️" },
+
 ];
 
 export function Sidebar() {

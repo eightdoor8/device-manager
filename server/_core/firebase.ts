@@ -341,3 +341,31 @@ export async function getUsersFromFirebase() {
     throw error;
   }
 }
+
+/**
+ * Firestoreのユーザーロールを更新
+ */
+export async function updateUserRoleInFirestore(email: string, role: "user" | "admin") {
+  try {
+    const db = await getFirestore();
+    
+    console.log(`[Firestore] Updating role for ${email} to ${role}...`);
+    
+    // Query users collection by email
+    const usersSnapshot = await db.collection("users").where("email", "==", email).get();
+    
+    if (usersSnapshot.empty) {
+      throw new Error(`User not found: ${email}`);
+    }
+    
+    // Update the first matching user
+    const userDoc = usersSnapshot.docs[0];
+    await userDoc.ref.update({ role });
+    
+    console.log(`[Firestore] Updated ${email} to ${role} role`);
+    return { success: true };
+  } catch (error) {
+    console.error("[Firestore] Error updating user role:", error);
+    throw error;
+  }
+}

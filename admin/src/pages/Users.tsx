@@ -22,17 +22,28 @@ export function Users({ user }: UsersProps) {
   const [sortColumn, setSortColumn] = useState<string>("id");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [roleFilter, setRoleFilter] = useState<"all" | "admin" | "user">("all");
+  const [successMessage, setSuccessMessage] = useState<string>("");
+  const [errorMessage, setErrorMessage] = useState<string>("");
 
   const usersQuery = trpc.users.list.useQuery();
   const updateRoleMutation = trpc.users.updateRole.useMutation({
     onSuccess: () => {
+      setSuccessMessage("ロールを更新しました");
+      setErrorMessage("");
+      setTimeout(() => setSuccessMessage(""), 3000);
       usersQuery.refetch();
+    },
+    onError: (error) => {
+      setErrorMessage(error.message || "ロール更新に失敗しました");
+      setSuccessMessage("");
     },
   });
 
-  const handleRoleChange = (userId: number | string, newRole: "user" | "admin") => {
+  const handleRoleChange = (userId: number | string, newRole: "user" | "admin", email?: string) => {
     const numericId = typeof userId === "string" ? parseInt(userId, 10) : userId;
-    updateRoleMutation.mutate({ userId: numericId, role: newRole });
+    setErrorMessage("");
+    setSuccessMessage("");
+    updateRoleMutation.mutate({ userId: numericId, role: newRole, email });
   };
 
   const handleSort = (column: string) => {
@@ -102,6 +113,18 @@ export function Users({ user }: UsersProps) {
         </div>
       </div>
 
+      {successMessage && (
+        <div className="success-message">
+          ✓ {successMessage}
+        </div>
+      )}
+
+      {errorMessage && (
+        <div className="error-message-inline">
+          ✕ {errorMessage}
+        </div>
+      )}
+
       <div className="filter-bar">
         <div className="filter-group">
           <label>ロールフィルタ：</label>
@@ -148,7 +171,7 @@ export function Users({ user }: UsersProps) {
                   <select
                     value={user.role}
                     onChange={(e) =>
-                      handleRoleChange(user.id, e.target.value as "user" | "admin")
+                      handleRoleChange(user.id, e.target.value as "user" | "admin", user.email || undefined)
                     }
                     className="role-select"
                     disabled={updateRoleMutation.isPending}
