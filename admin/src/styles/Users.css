@@ -1,9 +1,8 @@
 .users-container {
-  padding: 40px 30px 60px 30px;
+  padding: 40px 30px;
   max-width: 1600px;
   margin: 0 auto;
   background-color: #f8f9fa;
-  min-height: calc(100vh - 64px);
   display: flex;
   flex-direction: column;
 }
@@ -79,7 +78,9 @@
   background: white;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: calc(100vh - 400px);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
