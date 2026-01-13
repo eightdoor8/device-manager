@@ -4,7 +4,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import * as db from "./db";
-import { getDevicesFromFirebase, getUsersFromFirebase } from "./_core/firebase";
+import { getDevicesFromFirestore, getUsersFromFirestore, getDevicesFromFirebase, getUsersFromFirebase } from "./_core/firebase";
 
 export const appRouter = router({
   system: systemRouter,
@@ -121,15 +121,26 @@ export const appRouter = router({
       if (ctx.user?.role !== "admin") {
         throw new Error("Unauthorized");
       }
-      // Try to get users from Firebase first, fallback to MySQL
+      // Try to get users from Firestore first, then Firebase Realtime DB, then MySQL
+      try {
+        const firestoreUsers = await getUsersFromFirestore();
+        if (firestoreUsers.length > 0) {
+          console.log("[Routers] Returning users from Firestore");
+          return firestoreUsers;
+        }
+      } catch (error) {
+        console.warn("[Routers] Failed to get users from Firestore:", error);
+      }
       try {
         const firebaseUsers = await getUsersFromFirebase();
         if (firebaseUsers.length > 0) {
+          console.log("[Routers] Returning users from Firebase Realtime DB");
           return firebaseUsers;
         }
       } catch (error) {
-        console.warn("[Routers] Failed to get users from Firebase, falling back to MySQL:", error);
+        console.warn("[Routers] Failed to get users from Firebase Realtime DB:", error);
       }
+      console.log("[Routers] Returning users from MySQL");
       return db.getAllUsers();
     }),
 
@@ -156,15 +167,26 @@ export const appRouter = router({
   // Device management
   devices: router({
     list: protectedProcedure.query(async () => {
-      // Try to get devices from Firebase first, fallback to MySQL
+      // Try to get devices from Firestore first, then Firebase Realtime DB, then MySQL
+      try {
+        const firestoreDevices = await getDevicesFromFirestore();
+        if (firestoreDevices.length > 0) {
+          console.log("[Routers] Returning devices from Firestore");
+          return firestoreDevices;
+        }
+      } catch (error) {
+        console.warn("[Routers] Failed to get devices from Firestore:", error);
+      }
       try {
         const firebaseDevices = await getDevicesFromFirebase();
         if (firebaseDevices.length > 0) {
+          console.log("[Routers] Returning devices from Firebase Realtime DB");
           return firebaseDevices;
         }
       } catch (error) {
-        console.warn("[Routers] Failed to get devices from Firebase, falling back to MySQL:", error);
+        console.warn("[Routers] Failed to get devices from Firebase Realtime DB:", error);
       }
+      console.log("[Routers] Returning devices from MySQL");
       return db.getAllDevices();
     }),
 
@@ -232,14 +254,22 @@ export const appRouter = router({
       }),
 
     available: protectedProcedure.query(async () => {
-      // Try to get available devices from Firebase first, fallback to MySQL
+      // Try to get available devices from Firestore first, then Firebase Realtime DB, then MySQL
+      try {
+        const firestoreDevices = await getDevicesFromFirestore();
+        if (firestoreDevices.length > 0) {
+          return firestoreDevices.filter((d) => d.status === "available");
+        }
+      } catch (error) {
+        console.warn("[Routers] Failed to get available devices from Firestore:", error);
+      }
       try {
         const firebaseDevices = await getDevicesFromFirebase();
         if (firebaseDevices.length > 0) {
           return firebaseDevices.filter((d) => d.status === "available");
         }
       } catch (error) {
-        console.warn("[Routers] Failed to get available devices from Firebase, falling back to MySQL:", error);
+        console.warn("[Routers] Failed to get available devices from Firebase Realtime DB:", error);
       }
       return db.getAvailableDevices();
     }),
@@ -254,18 +284,28 @@ export const appRouter = router({
       if (ctx.user?.role !== "admin") {
         throw new Error("Unauthorized");
       }
-      // Try to get devices from Firebase first, fallback to MySQL
+      // Try to get devices from Firestore first, then Firebase Realtime DB, then MySQL
       let devices = [];
       try {
-        const firebaseDevices = await getDevicesFromFirebase();
-        if (firebaseDevices.length > 0) {
-          devices = firebaseDevices;
+        const firestoreDevices = await getDevicesFromFirestore();
+        if (firestoreDevices.length > 0) {
+          devices = firestoreDevices;
         } else {
-          devices = await db.getAllDevices();
+          throw new Error("No devices in Firestore");
         }
       } catch (error) {
-        console.warn("[Routers] Failed to get devices from Firebase, falling back to MySQL:", error);
-        devices = await db.getAllDevices();
+        console.warn("[Routers] Failed to get devices from Firestore:", error);
+        try {
+          const firebaseDevices = await getDevicesFromFirebase();
+          if (firebaseDevices.length > 0) {
+            devices = firebaseDevices;
+          } else {
+            throw new Error("No devices in Firebase Realtime DB");
+          }
+        } catch (fbError) {
+          console.warn("[Routers] Failed to get devices from Firebase Realtime DB:", fbError);
+          devices = await db.getAllDevices();
+        }
       }
       
       // Create CSV header
