@@ -241,6 +241,28 @@ class SDKServer {
 
     const cookies = this.parseCookies(req.headers.cookie);
     const sessionCookie = token || cookies.get(COOKIE_NAME);
+    
+    if (!sessionCookie) {
+      throw ForbiddenError("No session cookie found");
+    }
+
+    // Try to parse as JSON (email/password authentication)
+    let user: User | null | undefined;
+    try {
+      const cookieData = JSON.parse(sessionCookie);
+      if (cookieData.email && cookieData.id) {
+        // This is an email/password authenticated session
+        user = await db.getUserByEmail(cookieData.email);
+        if (user) {
+          console.log("[Auth] Email/password session verified for:", cookieData.email);
+          return user;
+        }
+      }
+    } catch (e) {
+      // Not JSON, try JWT verification
+    }
+
+    // Try JWT verification (OAuth authentication)
     const session = await this.verifySession(sessionCookie);
 
     if (!session) {
@@ -249,7 +271,7 @@ class SDKServer {
 
     const sessionUserId = session.openId;
     const signedInAt = new Date();
-    let user = await db.getUserByOpenId(sessionUserId);
+    user = await db.getUserByOpenId(sessionUserId);
 
     // If user not in DB, sync from OAuth server automatically
     if (!user) {

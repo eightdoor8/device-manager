@@ -1,0 +1,9 @@
+{
+  "query": "\nINSERT INTO devices (modelName, osName, osVersion, manufacturer, screenSize, physicalMemory, uuid, status, registeredBy, registeredAt, updatedAt, memo) VALUES\n('iPhone 15 Pro', 'iOS', '17.2', 'Apple', '6.1', '8GB', 'uuid-001', 'available', 1, NOW(), NOW(), 'Test device 1'),\n('Samsung Galaxy S24', 'Android', '14', 'Samsung', '6.2', '12GB', 'uuid-002', 'available', 1, NOW(), NOW(), 'Test device 2'),\n('Pixel 9 Pro', 'Android', '14', 'Google', '6.3', '16GB', 'uuid-003', 'in_use', 1, NOW(), NOW(), 'Test device 3');\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3Kn8N8TPJUbeC9j.root --database Lng5CQXkaMLRVuYrS6nF9r --execute \nINSERT INTO devices (modelName, osName, osVersion, manufacturer, screenSize, physicalMemory, uuid, status, registeredBy, registeredAt, updatedAt, memo) VALUES\n('iPhone 15 Pro', 'iOS', '17.2', 'Apple', '6.1', '8GB', 'uuid-001', 'available', 1, NOW(), NOW(), 'Test device 1'),\n('Samsung Galaxy S24', 'Android', '14', 'Samsung', '6.2', '12GB', 'uuid-002', 'available', 1, NOW(), NOW(), 'Test device 2'),\n('Pixel 9 Pro', 'Android', '14', 'Google', '6.3', '16GB', 'uuid-003', 'in_use', 1, NOW(), NOW(), 'Test device 3');\n",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1502
+}

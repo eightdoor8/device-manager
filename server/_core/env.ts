@@ -7,4 +7,8 @@ export const ENV = {
   isProduction: process.env.NODE_ENV === "production",
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
+  firebaseProjectId: process.env.FIREBASE_PROJECT_ID ?? "",
+  firebasePrivateKey: process.env.FIREBASE_PRIVATE_KEY ?? "",
+  firebaseClientEmail: process.env.FIREBASE_CLIENT_EMAIL ?? "",
+  firebaseDatabaseUrl: process.env.FIREBASE_DATABASE_URL ?? "",
 };

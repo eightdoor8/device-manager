@@ -4,7 +4,21 @@ import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ErrorMessage } from "../components/ErrorMessage";
 import "../styles/Users.css";
 
-export function Users() {
+interface UsersProps {
+  user?: any;
+}
+
+// Normalize user object to handle both MySQL and Firebase formats
+interface NormalizedUser {
+  id: number | string;
+  name: string | null;
+  email: string | null;
+  role: "user" | "admin";
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export function Users({ user }: UsersProps) {
   const [sortColumn, setSortColumn] = useState<string>("id");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [roleFilter, setRoleFilter] = useState<"all" | "admin" | "user">("all");
@@ -16,8 +30,9 @@ export function Users() {
     },
   });
 
-  const handleRoleChange = (userId: number, newRole: "user" | "admin") => {
-    updateRoleMutation.mutate({ userId, role: newRole });
+  const handleRoleChange = (userId: number | string, newRole: "user" | "admin") => {
+    const numericId = typeof userId === "string" ? parseInt(userId, 10) : userId;
+    updateRoleMutation.mutate({ userId: numericId, role: newRole });
   };
 
   const handleSort = (column: string) => {
@@ -48,7 +63,15 @@ export function Users() {
     );
   }
 
-  let users = usersQuery.data || [];
+  // Normalize users to handle both MySQL and Firebase formats
+  let users: NormalizedUser[] = (usersQuery.data || []).map((u: any) => ({
+    id: u.id,
+    name: u.name || null,
+    email: u.email || null,
+    role: u.role || "user",
+    createdAt: u.createdAt ? new Date(u.createdAt) : new Date(),
+    updatedAt: u.updatedAt ? new Date(u.updatedAt) : new Date(),
+  }));
 
   // フィルタリング
   if (roleFilter !== "all") {
@@ -75,13 +98,13 @@ export function Users() {
       <div className="users-header">
         <div>
           <h1>ユーザー管理</h1>
-          <p>ユーザーの一覧と権限管理</p>
+          <p>システムユーザーの一覧と管理</p>
         </div>
       </div>
 
       <div className="filter-bar">
         <div className="filter-group">
-          <label>権限フィルタ：</label>
+          <label>ロールフィルタ：</label>
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value as any)}
@@ -101,17 +124,17 @@ export function Users() {
               <th onClick={() => handleSort("id")} className="sortable">
                 ID {sortColumn === "id" && (sortOrder === "asc" ? "▲" : "▼")}
               </th>
-              <th onClick={() => handleSort("email")} className="sortable">
-                メールアドレス {sortColumn === "email" && (sortOrder === "asc" ? "▲" : "▼")}
-              </th>
               <th onClick={() => handleSort("name")} className="sortable">
                 名前 {sortColumn === "name" && (sortOrder === "asc" ? "▲" : "▼")}
               </th>
+              <th onClick={() => handleSort("email")} className="sortable">
+                メール {sortColumn === "email" && (sortOrder === "asc" ? "▲" : "▼")}
+              </th>
               <th onClick={() => handleSort("role")} className="sortable">
-                権限 {sortColumn === "role" && (sortOrder === "asc" ? "▲" : "▼")}
+                ロール {sortColumn === "role" && (sortOrder === "asc" ? "▲" : "▼")}
               </th>
               <th onClick={() => handleSort("createdAt")} className="sortable">
-                登録日時 {sortColumn === "createdAt" && (sortOrder === "asc" ? "▲" : "▼")}
+                作成日時 {sortColumn === "createdAt" && (sortOrder === "asc" ? "▲" : "▼")}
               </th>
             </tr>
           </thead>
@@ -119,8 +142,8 @@ export function Users() {
             {users.map((user) => (
               <tr key={user.id}>
                 <td>{user.id}</td>
-                <td>{user.email || "-"}</td>
                 <td>{user.name || "-"}</td>
+                <td>{user.email || "-"}</td>
                 <td>
                   <select
                     value={user.role}

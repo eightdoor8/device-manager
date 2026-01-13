@@ -1,13 +1,27 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { trpc } from "../lib/trpc";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ErrorMessage } from "../components/ErrorMessage";
 import "../styles/Devices.css";
 
-export function Devices() {
+interface DevicesProps {
+  user?: any;
+}
+
+export function Devices({ user }: DevicesProps) {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [sortColumn, setSortColumn] = useState<string>("id");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [statusFilter, setStatusFilter] = useState<"all" | "available" | "in_use">("all");
+
+  // URLクエリパラメータから初期フィルタを設定
+  useEffect(() => {
+    const filterParam = searchParams.get("status");
+    if (filterParam === "available" || filterParam === "in_use") {
+      setStatusFilter(filterParam);
+    }
+  }, [searchParams]);
 
   const devicesQuery = trpc.devices.list.useQuery();
   const csvQuery = trpc.devices.csv.useQuery();
@@ -46,6 +60,15 @@ export function Devices() {
     } else {
       setSortColumn(column);
       setSortOrder("asc");
+    }
+  };
+
+  const handleFilterChange = (newFilter: "all" | "available" | "in_use") => {
+    setStatusFilter(newFilter);
+    if (newFilter === "all") {
+      setSearchParams({});
+    } else {
+      setSearchParams({ status: newFilter });
     }
   };
 
@@ -107,7 +130,7 @@ export function Devices() {
           <label>ステータスフィルタ：</label>
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as any)}
+            onChange={(e) => handleFilterChange(e.target.value as any)}
             className="filter-select"
           >
             <option value="all">すべて</option>
@@ -164,7 +187,7 @@ export function Devices() {
                     {device.status === "available" && (
                       <button
                         className="delete-button"
-                        onClick={() => handleDelete(device.id)}
+                        onClick={() => handleDelete(typeof device.id === "string" ? parseInt(device.id, 10) : device.id)}
                         disabled={deleteMutation.isPending}
                         title="この端末を削除"
                       >

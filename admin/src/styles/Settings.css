@@ -1,0 +1,244 @@
+.settings-container {
+  padding: 40px 30px;
+  max-width: 1600px;
+  margin: 0 auto;
+  background-color: #f8f9fa;
+  min-height: calc(100vh - 64px);
+}
+
+.settings-header {
+  margin-bottom: 40px;
+}
+
+.settings-header h1 {
+  font-size: 36px;
+  font-weight: 700;
+  margin: 0 0 12px 0;
+  color: #1a1a1a;
+  letter-spacing: -0.5px;
+}
+
+.settings-header p {
+  color: #666;
+  font-size: 16px;
+  margin: 0;
+  font-weight: 400;
+}
+
+.settings-form {
+  background: white;
+  border-radius: 12px;
+  padding: 40px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
+  max-width: 800px;
+}
+
+.settings-section {
+  margin-bottom: 40px;
+  padding-bottom: 40px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.settings-section:last-of-type {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.settings-section h2 {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 24px;
+  color: #1f2937;
+}
+
+.form-group {
+  margin-bottom: 24px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 10px;
+  font-weight: 600;
+  color: #374151;
+  font-size: 14px;
+}
+
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group select {
+  width: 100%;
+  max-width: 400px;
+  padding: 12px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: all 0.2s;
+  background-color: white;
+}
+
+.form-group input[type="text"]:hover,
+.form-group input[type="number"]:hover,
+.form-group select:hover {
+  border-color: #9ca3af;
+}
+
+.form-group input[type="text"]:focus,
+.form-group input[type="number"]:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #007AFF;
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+}
+
+.form-group.checkbox {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+  gap: 12px;
+}
+
+.form-group.checkbox input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #007AFF;
+}
+
+.form-group.checkbox label {
+  margin-bottom: 0;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.settings-actions {
+  margin-top: 40px;
+  padding-top: 40px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  gap: 12px;
+}
+
+.btn-primary {
+  background-color: #007AFF;
+  color: white;
+  padding: 12px 28px;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.2);
+}
+
+.btn-primary:hover {
+  background-color: #0051D5;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 122, 255, 0.35);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 1024px) {
+  .settings-container {
+    padding: 32px 24px;
+  }
+
+  .settings-header h1 {
+    font-size: 32px;
+  }
+
+  .settings-form {
+    padding: 32px;
+    max-width: 100%;
+  }
+
+  .settings-section {
+    margin-bottom: 32px;
+    padding-bottom: 32px;
+  }
+
+  .form-group input[type="text"],
+  .form-group input[type="number"],
+  .form-group select {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .settings-container {
+    padding: 24px 16px;
+    min-height: calc(100vh - 56px);
+  }
+
+  .settings-header {
+    margin-bottom: 32px;
+  }
+
+  .settings-header h1 {
+    font-size: 28px;
+  }
+
+  .settings-header p {
+    font-size: 14px;
+  }
+
+  .settings-form {
+    padding: 24px 16px;
+    border-radius: 10px;
+  }
+
+  .settings-section {
+    margin-bottom: 24px;
+    padding-bottom: 24px;
+  }
+
+  .settings-section h2 {
+    font-size: 18px;
+    margin-bottom: 16px;
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .form-group label {
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+
+  .form-group input[type="text"],
+  .form-group input[type="number"],
+  .form-group select {
+    width: 100%;
+    max-width: 100%;
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+
+  .form-group.checkbox {
+    gap: 10px;
+  }
+
+  .form-group.checkbox input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+  }
+
+  .settings-actions {
+    margin-top: 24px;
+    padding-top: 24px;
+    flex-direction: column;
+  }
+
+  .btn-primary {
+    width: 100%;
+    padding: 12px 20px;
+    font-size: 14px;
+  }
+}

@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { trpc } from "./trpc";
 
-const API_URL = (import.meta.env as any).VITE_API_URL || "http://localhost:3000";
+const API_URL = (import.meta.env as any).VITE_API_URL || "";
 
 export function TRPCProvider({ children }: { children: ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());

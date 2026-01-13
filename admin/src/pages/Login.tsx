@@ -1,21 +1,19 @@
-import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getLoginUrl } from "../lib/oauth";
-import { useAuth } from "../contexts/AuthContext";
 import "../styles/Login.css";
 
-export function Login() {
-  const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+interface LoginProps {
+  setIsLoggedIn?: (value: boolean) => void;
+  setUser?: (value: any) => void;
+}
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate("/");
-    }
-  }, [isAuthenticated, navigate]);
+export function Login({ setIsLoggedIn, setUser }: LoginProps) {
+  const navigate = useNavigate();
 
   const handleOAuthLogin = () => {
-    window.location.href = getLoginUrl();
+    const loginUrl = getLoginUrl();
+    console.log("[Login] Redirecting to:", loginUrl);
+    window.location.href = loginUrl;
   };
 
   return (
@@ -31,3 +29,5 @@ export function Login() {
     </div>
   );
 }
+
+export default Login;
