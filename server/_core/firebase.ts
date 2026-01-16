@@ -369,3 +369,186 @@ export async function updateUserRoleInFirestore(email: string, role: "user" | "a
     throw error;
   }
 }
+
+
+/**
+ * Firestore に貸出履歴を記録
+ */
+export async function recordRentalHistory(
+  deviceId: number,
+  deviceName: string,
+  userId: string,
+  userName: string,
+  borrowedAt: Date
+) {
+  try {
+    const db = await getFirestore();
+    
+    console.log(`[Firestore] Recording rental history for device ${deviceId}...`);
+    
+    const rentalRecord = {
+      deviceId,
+      deviceName,
+      userId,
+      userName,
+      borrowedAt: new Date(borrowedAt),
+      returnedAt: null,
+      status: "borrowed", // borrowed or returned
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    
+    // Add to rentalHistory collection
+    const docRef = await db.collection("rentalHistory").add(rentalRecord);
+    
+    // 100件を超えた場合、古い履歴を削除
+    await cleanupOldRentalHistory();
+    
+    console.log(`[Firestore] Rental history recorded with ID: ${docRef.id}`);
+    return { success: true, id: docRef.id };
+  } catch (error) {
+    console.error("[Firestore] Error recording rental history:", error);
+    throw error;
+  }
+}
+
+/**
+ * Firestore の貸出履歴を返却状態に更新
+ */
+export async function recordRentalReturn(
+  rentalHistoryId: string,
+  returnedAt: Date
+) {
+  try {
+    const db = await getFirestore();
+    
+    console.log(`[Firestore] Recording return for rental history ${rentalHistoryId}...`);
+    
+    const docRef = db.collection("rentalHistory").doc(rentalHistoryId);
+    await docRef.update({
+      returnedAt: new Date(returnedAt),
+      status: "returned",
+      updatedAt: new Date(),
+    });
+    
+    console.log(`[Firestore] Return recorded for rental history ${rentalHistoryId}`);
+    return { success: true };
+  } catch (error) {
+    console.error("[Firestore] Error recording rental return:", error);
+    throw error;
+  }
+}
+
+/**
+ * Firestore から貸出履歴を取得
+ */
+export async function getRentalHistoryFromFirestore() {
+  try {
+    const db = await getFirestore();
+    
+    console.log("[Firestore] Fetching rental history from Firestore...");
+    const rentalHistorySnapshot = await db
+      .collection("rentalHistory")
+      .orderBy("createdAt", "desc")
+      .get();
+
+    if (rentalHistorySnapshot.empty) {
+      console.log("[Firestore] No rental history data in Firestore");
+      return [];
+    }
+
+    const rentalHistory: any[] = [];
+    rentalHistorySnapshot.forEach((doc) => {
+      const data = doc.data();
+      
+      // Helper function to convert Firestore Timestamp to Date
+      const convertTimestamp = (timestamp: any): Date | null => {
+        if (!timestamp) return null;
+        if (timestamp.toDate && typeof timestamp.toDate === 'function') {
+          return timestamp.toDate();
+        }
+        if (timestamp instanceof Date) {
+          return timestamp;
+        }
+        if (typeof timestamp === 'number') {
+          return new Date(timestamp);
+        }
+        return null;
+      };
+      
+      rentalHistory.push({
+        id: doc.id,
+        deviceId: data.deviceId || 0,
+        deviceName: data.deviceName || "",
+        userId: data.userId || "",
+        userName: data.userName || "",
+        borrowedAt: convertTimestamp(data.borrowedAt),
+        returnedAt: convertTimestamp(data.returnedAt),
+        status: data.status || "borrowed",
+        createdAt: convertTimestamp(data.createdAt),
+        updatedAt: convertTimestamp(data.updatedAt),
+      });
+    });
+
+    console.log("[Firestore] Retrieved rental history from Firestore:", rentalHistory.length, "records");
+    return rentalHistory;
+  } catch (error) {
+    console.error("[Firestore] Error getting rental history:", error);
+    throw error;
+  }
+}
+
+/**
+ * Firestore から貸出履歴を削除
+ */
+export async function deleteRentalHistoryFromFirestore(rentalHistoryId: string) {
+  try {
+    const db = await getFirestore();
+    
+    console.log(`[Firestore] Deleting rental history ${rentalHistoryId}...`);
+    
+    await db.collection("rentalHistory").doc(rentalHistoryId).delete();
+    
+    console.log(`[Firestore] Deleted rental history ${rentalHistoryId}`);
+    return { success: true };
+  } catch (error) {
+    console.error("[Firestore] Error deleting rental history:", error);
+    throw error;
+  }
+}
+
+/**
+ * 古い貸出履歴を削除（100件を上限）
+ */
+async function cleanupOldRentalHistory() {
+  try {
+    const db = await getFirestore();
+    
+    // 貸出履歴の総数を取得
+    const countSnapshot = await db.collection("rentalHistory").count().get();
+    const totalCount = countSnapshot.data().count;
+    
+    if (totalCount > 100) {
+      console.log(`[Firestore] Rental history count (${totalCount}) exceeds limit (100). Cleaning up old records...`);
+      
+      // 古い履歴を削除（最も古いものから削除）
+      const deleteCount = totalCount - 100;
+      const oldRecordsSnapshot = await db
+        .collection("rentalHistory")
+        .orderBy("createdAt", "asc")
+        .limit(deleteCount)
+        .get();
+      
+      const batch = db.batch();
+      oldRecordsSnapshot.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+      
+      await batch.commit();
+      console.log(`[Firestore] Deleted ${deleteCount} old rental history records`);
+    }
+  } catch (error) {
+    console.error("[Firestore] Error cleaning up old rental history:", error);
+    // Don't throw - this is a cleanup operation
+  }
+}

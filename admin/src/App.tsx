@@ -5,6 +5,7 @@ import { Login } from './pages/Login'
 import { Dashboard } from './pages/Dashboard'
 import { Devices } from './pages/Devices'
 import { Users } from './pages/Users'
+import RentalHistory from './pages/RentalHistory'
 import { Settings } from './pages/Settings'
 import { Navbar } from './components/Navbar'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
@@ -47,6 +48,12 @@ function AppContent() {
           path="/users" 
           element={
             isAuthenticated ? <Users user={user} /> : <Navigate to="/login" />
+          } 
+        />
+        <Route 
+          path="/rental-history" 
+          element={
+            isAuthenticated ? <RentalHistory /> : <Navigate to="/login" />
           } 
         />
         <Route 

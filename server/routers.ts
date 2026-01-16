@@ -4,7 +4,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import * as db from "./db";
-import { getDevicesFromFirestore, getUsersFromFirestore, getDevicesFromFirebase, getUsersFromFirebase, updateUserRoleInFirestore } from "./_core/firebase";
+import { getDevicesFromFirestore, getUsersFromFirestore, getDevicesFromFirebase, getUsersFromFirebase, updateUserRoleInFirestore, recordRentalHistory, recordRentalReturn, getRentalHistoryFromFirestore, deleteRentalHistoryFromFirestore } from "./_core/firebase";
 
 export const appRouter = router({
   system: systemRouter,
@@ -347,6 +347,58 @@ export const appRouter = router({
       
       return csv;
     }),
+  }),
+
+  rentalHistory: router({
+    list: protectedProcedure.query(async () => {
+      return getRentalHistoryFromFirestore();
+    }),
+
+    record: protectedProcedure
+      .input(
+        z.object({
+          deviceId: z.number(),
+          deviceName: z.string(),
+          userId: z.string(),
+          userName: z.string(),
+          borrowedAt: z.date(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        if (ctx.user?.role !== "admin") {
+          throw new Error("Unauthorized");
+        }
+        return recordRentalHistory(
+          input.deviceId,
+          input.deviceName,
+          input.userId,
+          input.userName,
+          input.borrowedAt
+        );
+      }),
+
+    return: protectedProcedure
+      .input(
+        z.object({
+          rentalHistoryId: z.string(),
+          returnedAt: z.date(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        if (ctx.user?.role !== "admin") {
+          throw new Error("Unauthorized");
+        }
+        return recordRentalReturn(input.rentalHistoryId, input.returnedAt);
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ rentalHistoryId: z.string() }))
+      .mutation(async ({ input, ctx }) => {
+        if (ctx.user?.role !== "admin") {
+          throw new Error("Unauthorized");
+        }
+        return deleteRentalHistoryFromFirestore(input.rentalHistoryId);
+      }),
   }),
 });
 
