@@ -68,6 +68,40 @@ async function startServer() {
 
   registerOAuthRoutes(app);
 
+  // Auth endpoints
+  app.get("/api/auth/me", (req, res) => {
+    // Get user from context (requires middleware to set req.user)
+    // For now, check if user info is in the session cookie
+    const cookieHeader = req.headers.cookie;
+    if (!cookieHeader) {
+      return res.status(401).json({ error: "No session cookie found" });
+    }
+
+    // Parse cookies
+    const cookies = cookieHeader.split(";").reduce((acc: Record<string, string>, cookie) => {
+      const [key, value] = cookie.trim().split("=");
+      acc[key] = decodeURIComponent(value);
+      return acc;
+    }, {});
+
+    const sessionCookie = cookies["manus-session"];
+    if (!sessionCookie) {
+      return res.status(401).json({ error: "No session cookie found" });
+    }
+
+    try {
+      const user = JSON.parse(sessionCookie);
+      res.json({ user });
+    } catch (error) {
+      res.status(401).json({ error: "Invalid session cookie" });
+    }
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    res.clearCookie("manus-session");
+    res.json({ success: true });
+  });
+
   app.get("/api/health", (_req, res) => {
     res.json({ ok: true, timestamp: Date.now() });
   });
