@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { trpc } from '../lib/trpc';
 import '../styles/RentalHistory.css';
 
@@ -32,6 +32,17 @@ export default function RentalHistory() {
   const devicesQuery = trpc.devices.list.useQuery();
   const usersQuery = trpc.users.list.useQuery();
   const historyQuery = trpc.rentalHistory.list.useQuery();
+
+  // Debug logging
+  useEffect(() => {
+    console.log('[RentalHistory] Devices Query:', {
+      isLoading: devicesQuery.isLoading,
+      isError: devicesQuery.isError,
+      error: devicesQuery.error,
+      dataLength: devicesQuery.data?.length,
+      data: devicesQuery.data,
+    });
+  }, [devicesQuery.data, devicesQuery.isLoading, devicesQuery.isError, devicesQuery.error]);
 
   // Mutations
   const recordMutation = trpc.rentalHistory.record.useMutation({
@@ -272,7 +283,7 @@ export default function RentalHistory() {
                   <option value="">選択してください</option>
                   {devicesQuery.data?.map(device => (
                     <option key={device.id} value={device.id}>
-                      {device.name}
+                      {device.modelName}
                     </option>
                   ))}
                 </select>

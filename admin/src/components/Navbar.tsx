@@ -49,6 +49,14 @@ export function Navbar() {
           </li>
           <li>
             <Link
+              to="/rental-history"
+              className={`navbar-link ${isActive('/rental-history') ? 'active' : ''}`}
+            >
+              貸出履歴
+            </Link>
+          </li>
+          <li>
+            <Link
               to="/settings"
               className={`navbar-link ${isActive('/settings') ? 'active' : ''}`}
             >

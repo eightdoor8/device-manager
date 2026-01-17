@@ -15,6 +15,12 @@ export function TRPCProvider({ children }: { children: ReactNode }) {
         httpBatchLink({
           url: `${API_URL}/api/trpc`,
           transformer: superjson,
+          fetch: async (input, init) => {
+            return fetch(input, {
+              ...init,
+              credentials: 'include',
+            });
+          },
         }),
       ],
     })
