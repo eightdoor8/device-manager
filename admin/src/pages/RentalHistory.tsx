@@ -14,12 +14,6 @@ interface RentalRecord {
 }
 
 export default function RentalHistory() {
-  const [showModal, setShowModal] = useState(false);
-  const [formData, setFormData] = useState({
-    deviceId: '',
-    userId: '',
-    borrowedAt: new Date().toISOString().split('T')[0],
-  });
   const [filters, setFilters] = useState({
     deviceName: '',
     userName: '',
@@ -29,47 +23,7 @@ export default function RentalHistory() {
   });
 
   // Fetch data using tRPC hooks
-  const devicesQuery = trpc.devices.list.useQuery();
-  const usersQuery = trpc.users.list.useQuery();
   const historyQuery = trpc.rentalHistory.list.useQuery();
-
-  // Debug logging
-  useEffect(() => {
-    console.log('[RentalHistory] Devices Query:', {
-      isLoading: devicesQuery.isLoading,
-      isError: devicesQuery.isError,
-      error: devicesQuery.error,
-      dataLength: devicesQuery.data?.length,
-      data: devicesQuery.data,
-    });
-  }, [devicesQuery.data, devicesQuery.isLoading, devicesQuery.isError, devicesQuery.error]);
-
-  // Mutations
-  const recordMutation = trpc.rentalHistory.record.useMutation({
-    onSuccess: () => {
-      historyQuery.refetch();
-      setFormData({
-        deviceId: '',
-        userId: '',
-        borrowedAt: new Date().toISOString().split('T')[0],
-      });
-      setShowModal(false);
-      alert('貸出を記録しました');
-    },
-    onError: (error) => {
-      alert(`エラー: ${error.message}`);
-    },
-  });
-
-  const returnMutation = trpc.rentalHistory.return.useMutation({
-    onSuccess: () => {
-      historyQuery.refetch();
-      alert('返却を記録しました');
-    },
-    onError: (error) => {
-      alert(`エラー: ${error.message}`);
-    },
-  });
 
   const deleteMutation = trpc.rentalHistory.delete.useMutation({
     onSuccess: () => {
@@ -81,50 +35,12 @@ export default function RentalHistory() {
     },
   });
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFilters(prev => ({
       ...prev,
       [name]: value,
     }));
-  };
-
-  const handleRecordRental = async () => {
-    if (!formData.deviceId || !formData.userId) {
-      alert('全ての項目を入力してください');
-      return;
-    }
-
-    const selectedDevice = devicesQuery.data?.find(d => d.id === parseInt(formData.deviceId));
-    const selectedUser = usersQuery.data?.find(u => u.id === formData.userId);
-
-    if (!selectedDevice || !selectedUser) {
-      alert('端末またはユーザーが見つかりません');
-      return;
-    }
-
-    recordMutation.mutate({
-      deviceId: parseInt(formData.deviceId),
-      deviceName: selectedDevice.name,
-      userId: formData.userId,
-      userName: selectedUser.name,
-      borrowedAt: new Date(formData.borrowedAt),
-    });
-  };
-
-  const handleReturnDevice = (recordId: string) => {
-    returnMutation.mutate({
-      rentalHistoryId: recordId,
-      returnedAt: new Date(),
-    });
   };
 
   const handleDeleteRecord = (recordId: string) => {
@@ -148,9 +64,7 @@ export default function RentalHistory() {
     <div className="rental-history-container">
       <div className="rental-history-header">
         <h1>貸出履歴</h1>
-        <button className="btn-record" onClick={() => setShowModal(true)}>
-          + 貸出を記録
-        </button>
+        <p className="subtitle">端末の貸出・返却履歴を表示します（自動ログ）</p>
       </div>
 
       {/* Filters */}
@@ -234,15 +148,6 @@ export default function RentalHistory() {
                     </span>
                   </td>
                   <td className="actions">
-                    {record.status === 'borrowed' && (
-                      <button
-                        className="btn-return"
-                        onClick={() => handleReturnDevice(record.id)}
-                        disabled={returnMutation.isPending}
-                      >
-                        {returnMutation.isPending ? '処理中...' : '返却'}
-                      </button>
-                    )}
                     <button
                       className="btn-delete"
                       onClick={() => handleDeleteRecord(record.id)}
@@ -257,82 +162,6 @@ export default function RentalHistory() {
           </tbody>
         </table>
       </div>
-
-      {/* Modal */}
-      {showModal && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <div className="modal-header">
-              <h2>貸出を記録</h2>
-              <button
-                className="modal-close"
-                onClick={() => setShowModal(false)}
-              >
-                ✕
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="form-group">
-                <label>端末 *</label>
-                <select
-                  name="deviceId"
-                  value={formData.deviceId}
-                  onChange={handleInputChange}
-                  className="form-select"
-                >
-                  <option value="">選択してください</option>
-                  {devicesQuery.data?.map(device => (
-                    <option key={device.id} value={device.id}>
-                      {device.modelName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>ユーザー *</label>
-                <select
-                  name="userId"
-                  value={formData.userId}
-                  onChange={handleInputChange}
-                  className="form-select"
-                >
-                  <option value="">選択してください</option>
-                  {usersQuery.data?.map(user => (
-                    <option key={user.id} value={user.id}>
-                      {user.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>貸出日 *</label>
-                <input
-                  type="date"
-                  name="borrowedAt"
-                  value={formData.borrowedAt}
-                  onChange={handleInputChange}
-                  className="form-input"
-                />
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button
-                className="btn-primary"
-                onClick={handleRecordRental}
-                disabled={recordMutation.isPending}
-              >
-                {recordMutation.isPending ? '処理中...' : '記録'}
-              </button>
-              <button
-                className="btn-secondary"
-                onClick={() => setShowModal(false)}
-              >
-                キャンセル
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -233,13 +233,51 @@ export const appRouter = router({
           status: z.enum(["available", "in_use"]),
           userId: z.number().optional(),
           userName: z.string().optional(),
+          deviceName: z.string().optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {
         if (ctx.user?.role !== "admin") {
           throw new Error("Unauthorized");
         }
+        
+        // Get current device status before update
+        const currentDevice = await db.getDeviceById(input.id);
+        if (!currentDevice) {
+          throw new Error("Device not found");
+        }
+        
+        // Update device status
         await db.updateDeviceStatus(input.id, input.status, input.userId, input.userName);
+        
+        // Auto-log rental history when status changes
+        const deviceName = input.deviceName || currentDevice.modelName || `Device ${input.id}`;
+        const userId = input.userId?.toString() || "unknown";
+        const userName = input.userName || "Unknown User";
+        
+        if (input.status === "in_use" && currentDevice.status !== "in_use") {
+          // Device is being borrowed - record checkout
+          console.log(`[Auto-Log] Recording checkout for device ${input.id}`);
+          await recordRentalHistory(
+            input.id,
+            deviceName,
+            userId,
+            userName,
+            new Date()
+          );
+        } else if (input.status === "available" && currentDevice.status === "in_use") {
+          // Device is being returned - record return
+          console.log(`[Auto-Log] Recording return for device ${input.id}`);
+          // Find the active rental record for this device
+          const rentalHistory = await getRentalHistoryFromFirestore();
+          const activeRental = rentalHistory.find(
+            (r) => r.deviceId === input.id && r.status === "borrowed"
+          );
+          if (activeRental) {
+            await recordRentalReturn(activeRental.id, new Date());
+          }
+        }
+        
         return { success: true };
       }),
 
