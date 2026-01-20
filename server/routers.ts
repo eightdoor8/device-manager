@@ -319,7 +319,7 @@ export const appRouter = router({
         throw new Error("Unauthorized");
       }
       // Try to get devices from Firestore first, then Firebase Realtime DB, then MySQL
-      let devices = [];
+      let devices: any[] = [];
       try {
         const firestoreDevices = await getDevicesFromFirestore();
         if (firestoreDevices.length > 0) {
