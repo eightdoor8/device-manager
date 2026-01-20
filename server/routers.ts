@@ -4,7 +4,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import * as db from "./db";
-import { getDevicesFromFirestore, getUsersFromFirestore, getDevicesFromFirebase, getUsersFromFirebase, updateUserRoleInFirestore, recordRentalHistory, recordRentalReturn, getRentalHistoryFromFirestore, deleteRentalHistoryFromFirestore, deleteDeviceFromFirestore } from "./_core/firebase";
+import { getDevicesFromFirestore, getUsersFromFirestore, getDevicesFromFirebase, getUsersFromFirebase, recordRentalHistory, recordRentalReturn, getRentalHistoryFromFirestore, deleteRentalHistoryFromFirestore, deleteDeviceFromFirestore } from "./_core/firebase";
 
 export const appRouter = router({
   system: systemRouter,
@@ -159,11 +159,7 @@ export const appRouter = router({
         if (ctx.user?.role !== "admin") {
           throw new Error("Unauthorized");
         }
-        if (input.email) {
-          await updateUserRoleInFirestore(input.email, input.role);
-        } else {
-          await db.updateUserRole(input.userId, input.role);
-        }
+        await db.updateUserRole(input.userId, input.role);
         return { success: true };
       }),
   }),
@@ -282,17 +278,11 @@ export const appRouter = router({
       }),
 
     delete: protectedProcedure
-      .input(z.object({ id: z.number() }))
+      .input(z.object({ id: z.string() }))
       .mutation(async ({ input, ctx }) => {
         if (ctx.user?.role !== "admin") {
           throw new Error("Unauthorized");
         }
-        const device = await db.getDeviceById(input.id);
-        if (device?.status === "in_use") {
-          throw new Error("Cannot delete device in use");
-        }
-        await db.deleteDevice(input.id);
-        // Also delete from Firestore
         await deleteDeviceFromFirestore(input.id);
         return { success: true };
       }),

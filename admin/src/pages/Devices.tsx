@@ -30,7 +30,7 @@ export function Devices({ user }: DevicesProps) {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleteSuccess, setDeleteSuccess] = useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [selectedDeviceId, setSelectedDeviceId] = useState<number | null>(null);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [selectedDeviceName, setSelectedDeviceName] = useState<string>("");
 
   // URLクエリパラメータから初期フィルタを設定
@@ -77,7 +77,7 @@ export function Devices({ user }: DevicesProps) {
   };
 
   const handleDeleteClick = (deviceId: number | string, deviceName: string) => {
-    setSelectedDeviceId(typeof deviceId === "string" ? parseInt(deviceId, 10) : deviceId);
+    setSelectedDeviceId(String(deviceId));
     setSelectedDeviceName(deviceName);
     setDeleteConfirmOpen(true);
   };

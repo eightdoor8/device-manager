@@ -132,6 +132,7 @@ export async function getDevicesFromFirestore() {
     }
 
     const devices: any[] = [];
+    
     devicesSnapshot.forEach((doc) => {
       const data = doc.data();
       
@@ -151,7 +152,7 @@ export async function getDevicesFromFirestore() {
       };
       
       devices.push({
-        id: 0, // Will be assigned sequentially after sorting
+        id: doc.id, // Use Firestore document ID directly
         modelName: data.modelName || "",
         osName: data.osName || "",
         osVersion: data.osVersion || "",
@@ -172,11 +173,6 @@ export async function getDevicesFromFirestore() {
 
     // Sort devices by registeredAt (oldest first)
     devices.sort((a, b) => a.registeredAt.getTime() - b.registeredAt.getTime());
-    
-    // Assign sequential IDs based on registration order
-    devices.forEach((device, index) => {
-      device.id = index + 1;
-    });
 
     console.log("[Firestore] Retrieved devices from Firestore:", devices.length, "devices");
     return devices;
@@ -221,7 +217,7 @@ export async function getUsersFromFirestore() {
       };
       
       users.push({
-        id: 0, // Will be assigned sequentially after sorting
+        id: doc.id, // Use Firestore document ID directly
         name: data.name || "",
         email: data.email || "",
         role: data.role || "user",
@@ -232,11 +228,6 @@ export async function getUsersFromFirestore() {
 
     // Sort users by createdAt (oldest first)
     users.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
-    
-    // Assign sequential IDs based on creation order
-    users.forEach((user, index) => {
-      user.id = index + 1;
-    });
 
     console.log("[Firestore] Retrieved users from Firestore:", users.length, "users");
     return users;
@@ -343,36 +334,106 @@ export async function getUsersFromFirebase() {
 }
 
 /**
- * Firestoreのユーザーロールを更新
+ * Firestore にデバイス情報を保存
  */
-export async function updateUserRoleInFirestore(email: string, role: "user" | "admin") {
+export async function saveDeviceToFirestore(deviceId: string, deviceData: any) {
   try {
     const db = await getFirestore();
     
-    console.log(`[Firestore] Updating role for ${email} to ${role}...`);
+    console.log(`[Firestore] Saving device ${deviceId}...`);
     
-    // Query users collection by email
-    const usersSnapshot = await db.collection("users").where("email", "==", email).get();
+    await db.collection("devices").doc(deviceId).set({
+      ...deviceData,
+      updatedAt: admin.firestore.Timestamp.now(),
+    }, { merge: true });
     
-    if (usersSnapshot.empty) {
-      throw new Error(`User not found: ${email}`);
-    }
-    
-    // Update the first matching user
-    const userDoc = usersSnapshot.docs[0];
-    await userDoc.ref.update({ role });
-    
-    console.log(`[Firestore] Updated ${email} to ${role} role`);
+    console.log(`[Firestore] Saved device ${deviceId}`);
     return { success: true };
   } catch (error) {
-    console.error("[Firestore] Error updating user role:", error);
+    console.error("[Firestore] Error saving device:", error);
     throw error;
   }
 }
 
+/**
+ * Firestore でデバイスのステータスを更新
+ */
+export async function updateDeviceStatusInFirestore(
+  deviceId: string,
+  status: string,
+  userId?: string | null,
+  userName?: string | null
+) {
+  try {
+    const db = await getFirestore();
+    
+    console.log(`[Firestore] Updating device ${deviceId} status to ${status}...`);
+    
+    const updateData: any = {
+      status,
+      updatedAt: admin.firestore.Timestamp.now(),
+    };
+    
+    if (status === "in_use") {
+      updateData.currentUserId = userId || null;
+      updateData.currentUserName = userName || null;
+      updateData.borrowedAt = admin.firestore.Timestamp.now();
+    } else if (status === "available") {
+      updateData.currentUserId = null;
+      updateData.currentUserName = null;
+      updateData.borrowedAt = null;
+    }
+    
+    await db.collection("devices").doc(deviceId).update(updateData);
+    
+    console.log(`[Firestore] Updated device ${deviceId}`);
+    return { success: true };
+  } catch (error) {
+    console.error("[Firestore] Error updating device status:", error);
+    throw error;
+  }
+}
 
 /**
- * Firestore に貸出履歴を記録
+ * Firestore からレンタル履歴を取得
+ */
+export async function getRentalHistoryFromFirestore() {
+  try {
+    const db = await getFirestore();
+    
+    console.log("[Firestore] Fetching rental history...");
+    const historySnapshot = await db.collection("rentalHistory").get();
+
+    if (historySnapshot.empty) {
+      console.log("[Firestore] No rental history data");
+      return [];
+    }
+
+    const history: any[] = [];
+    historySnapshot.forEach((doc) => {
+      const data = doc.data();
+      history.push({
+        id: doc.id,
+        deviceId: data.deviceId,
+        deviceName: data.deviceName,
+        userId: data.userId,
+        userName: data.userName,
+        status: data.status,
+        borrowedAt: data.borrowedAt?.toDate?.() || new Date(data.borrowedAt),
+        returnedAt: data.returnedAt?.toDate?.() || (data.returnedAt ? new Date(data.returnedAt) : null),
+      });
+    });
+
+    console.log("[Firestore] Retrieved rental history:", history.length, "records");
+    return history;
+  } catch (error) {
+    console.error("[Firestore] Error getting rental history:", error);
+    throw error;
+  }
+}
+
+/**
+ * Firestore にレンタル履歴を記録
  */
 export async function recordRentalHistory(
   deviceId: number,
@@ -386,26 +447,18 @@ export async function recordRentalHistory(
     
     console.log(`[Firestore] Recording rental history for device ${deviceId}...`);
     
-    const rentalRecord = {
+    await db.collection("rentalHistory").add({
       deviceId,
       deviceName,
       userId,
       userName,
-      borrowedAt: new Date(borrowedAt),
+      status: "borrowed",
+      borrowedAt: admin.firestore.Timestamp.fromDate(borrowedAt),
       returnedAt: null,
-      status: "borrowed", // borrowed or returned
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    });
     
-    // Add to rentalHistory collection
-    const docRef = await db.collection("rentalHistory").add(rentalRecord);
-    
-    // 100件を超えた場合、古い履歴を削除
-    await cleanupOldRentalHistory();
-    
-    console.log(`[Firestore] Rental history recorded with ID: ${docRef.id}`);
-    return { success: true, id: docRef.id };
+    console.log(`[Firestore] Recorded rental history`);
+    return { success: true };
   } catch (error) {
     console.error("[Firestore] Error recording rental history:", error);
     throw error;
@@ -413,25 +466,20 @@ export async function recordRentalHistory(
 }
 
 /**
- * Firestore の貸出履歴を返却状態に更新
+ * Firestore のレンタル履歴を更新（返却）
  */
-export async function recordRentalReturn(
-  rentalHistoryId: string,
-  returnedAt: Date
-) {
+export async function recordRentalReturn(rentalId: string, returnedAt: Date) {
   try {
     const db = await getFirestore();
     
-    console.log(`[Firestore] Recording return for rental history ${rentalHistoryId}...`);
+    console.log(`[Firestore] Recording rental return for ${rentalId}...`);
     
-    const docRef = db.collection("rentalHistory").doc(rentalHistoryId);
-    await docRef.update({
-      returnedAt: new Date(returnedAt),
+    await db.collection("rentalHistory").doc(rentalId).update({
       status: "returned",
-      updatedAt: new Date(),
+      returnedAt: admin.firestore.Timestamp.fromDate(returnedAt),
     });
     
-    console.log(`[Firestore] Return recorded for rental history ${rentalHistoryId}`);
+    console.log(`[Firestore] Recorded rental return`);
     return { success: true };
   } catch (error) {
     console.error("[Firestore] Error recording rental return:", error);
@@ -440,115 +488,20 @@ export async function recordRentalReturn(
 }
 
 /**
- * Firestore から貸出履歴を取得
+ * Firestore から古いレンタル履歴を削除
  */
-export async function getRentalHistoryFromFirestore() {
+export async function deleteRentalHistoryFromFirestore(rentalId: string) {
   try {
     const db = await getFirestore();
     
-    console.log("[Firestore] Fetching rental history from Firestore...");
-    const rentalHistorySnapshot = await db
-      .collection("rentalHistory")
-      .orderBy("createdAt", "desc")
-      .get();
-
-    if (rentalHistorySnapshot.empty) {
-      console.log("[Firestore] No rental history data in Firestore");
-      return [];
-    }
-
-    const rentalHistory: any[] = [];
-    rentalHistorySnapshot.forEach((doc) => {
-      const data = doc.data();
-      
-      // Helper function to convert Firestore Timestamp to Date
-      const convertTimestamp = (timestamp: any): Date | null => {
-        if (!timestamp) return null;
-        if (timestamp.toDate && typeof timestamp.toDate === 'function') {
-          return timestamp.toDate();
-        }
-        if (timestamp instanceof Date) {
-          return timestamp;
-        }
-        if (typeof timestamp === 'number') {
-          return new Date(timestamp);
-        }
-        return null;
-      };
-      
-      rentalHistory.push({
-        id: doc.id,
-        deviceId: data.deviceId || 0,
-        deviceName: data.deviceName || "",
-        userId: data.userId || "",
-        userName: data.userName || "",
-        borrowedAt: convertTimestamp(data.borrowedAt),
-        returnedAt: convertTimestamp(data.returnedAt),
-        status: data.status || "borrowed",
-        createdAt: convertTimestamp(data.createdAt),
-        updatedAt: convertTimestamp(data.updatedAt),
-      });
-    });
-
-    console.log("[Firestore] Retrieved rental history from Firestore:", rentalHistory.length, "records");
-    return rentalHistory;
-  } catch (error) {
-    console.error("[Firestore] Error getting rental history:", error);
-    throw error;
-  }
-}
-
-/**
- * Firestore から貸出履歴を削除
- */
-export async function deleteRentalHistoryFromFirestore(rentalHistoryId: string) {
-  try {
-    const db = await getFirestore();
+    console.log(`[Firestore] Deleting rental history ${rentalId}...`);
     
-    console.log(`[Firestore] Deleting rental history ${rentalHistoryId}...`);
+    await db.collection("rentalHistory").doc(rentalId).delete();
     
-    await db.collection("rentalHistory").doc(rentalHistoryId).delete();
-    
-    console.log(`[Firestore] Deleted rental history ${rentalHistoryId}`);
+    console.log(`[Firestore] Deleted rental history`);
     return { success: true };
   } catch (error) {
     console.error("[Firestore] Error deleting rental history:", error);
-    throw error;
-  }
-}
-
-/**
- * 古い貸出履歴を削除（100件を上限）
- */
-async function cleanupOldRentalHistory() {
-  try {
-    const db = await getFirestore();
-    
-    // 貸出履歴の総数を取得
-    const countSnapshot = await db.collection("rentalHistory").count().get();
-    const totalCount = countSnapshot.data().count;
-    
-    if (totalCount > 100) {
-      console.log(`[Firestore] Rental history count (${totalCount}) exceeds limit (100). Cleaning up old records...`);
-      
-      // 古い履歴を削除（最も古いものから削除）
-      const deleteCount = totalCount - 100;
-      const oldRecordsSnapshot = await db
-        .collection("rentalHistory")
-        .orderBy("createdAt", "asc")
-        .limit(deleteCount)
-        .get();
-      
-      const batch = db.batch();
-      oldRecordsSnapshot.forEach((doc) => {
-        batch.delete(doc.ref);
-      });
-      
-      await batch.commit();
-      console.log(`[Firestore] Deleted ${deleteCount} old rental history records`);
-    }
-  } catch (error) {
-    console.error("[Firestore] Error cleaning up old rental history:", error);
     // Don't throw - this is a cleanup operation
   }
 }
@@ -556,14 +509,14 @@ async function cleanupOldRentalHistory() {
 /**
  * Firestore からデバイスを削除
  */
-export async function deleteDeviceFromFirestore(deviceId: number) {
+export async function deleteDeviceFromFirestore(deviceId: string) {
   try {
     const db = await getFirestore();
     
     console.log(`[Firestore] Deleting device ${deviceId}...`);
     
-    // Firestore の devices コレクションからデバイスを削除
-    await db.collection("devices").doc(String(deviceId)).delete();
+    // Use the device ID directly as the Firestore document ID
+    await db.collection("devices").doc(deviceId).delete();
     
     console.log(`[Firestore] Deleted device ${deviceId}`);
     return { success: true };
