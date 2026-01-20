@@ -4,7 +4,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import * as db from "./db";
-import { getDevicesFromFirestore, getUsersFromFirestore, getDevicesFromFirebase, getUsersFromFirebase, updateUserRoleInFirestore, recordRentalHistory, recordRentalReturn, getRentalHistoryFromFirestore, deleteRentalHistoryFromFirestore } from "./_core/firebase";
+import { getDevicesFromFirestore, getUsersFromFirestore, getDevicesFromFirebase, getUsersFromFirebase, updateUserRoleInFirestore, recordRentalHistory, recordRentalReturn, getRentalHistoryFromFirestore, deleteRentalHistoryFromFirestore, deleteDeviceFromFirestore } from "./_core/firebase";
 
 export const appRouter = router({
   system: systemRouter,
@@ -292,6 +292,8 @@ export const appRouter = router({
           throw new Error("Cannot delete device in use");
         }
         await db.deleteDevice(input.id);
+        // Also delete from Firestore
+        await deleteDeviceFromFirestore(input.id);
         return { success: true };
       }),
 

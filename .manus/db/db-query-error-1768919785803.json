@@ -1,0 +1,8 @@
+{
+  "query": "SELECT id, model_name, status FROM devices ORDER BY id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3Kn8N8TPJUbeC9j.root --database Lng5CQXkaMLRVuYrS6nF9r --execute SELECT id, model_name, status FROM devices ORDER BY id;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'model_name' in 'field list'"
+  ]
+}

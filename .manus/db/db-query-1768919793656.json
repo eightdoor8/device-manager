@@ -1,0 +1,20 @@
+{
+  "query": "SELECT id, modelName, status FROM devices ORDER BY id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3Kn8N8TPJUbeC9j.root --database Lng5CQXkaMLRVuYrS6nF9r --execute SELECT id, modelName, status FROM devices ORDER BY id;",
+  "rows": [
+    {
+      "id": "1",
+      "modelName": "iPhone 15 Pro",
+      "status": "available"
+    },
+    {
+      "id": "3",
+      "modelName": "Pixel 9 Pro",
+      "status": "in_use"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tmodelName\tstatus\n1\tiPhone 15 Pro\tavailable\n3\tPixel 9 Pro\tin_use\n",
+  "stderr": "",
+  "execution_time_ms": 1568
+}

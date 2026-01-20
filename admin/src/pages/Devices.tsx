@@ -3,10 +3,23 @@ import { useSearchParams } from "react-router-dom";
 import { trpc } from "../lib/trpc";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ErrorMessage } from "../components/ErrorMessage";
+import { DeleteConfirmDialog } from "../components/DeleteConfirmDialog";
 import "../styles/Devices.css";
+import "../styles/Messages.css";
 
 interface DevicesProps {
   user?: any;
+}
+
+interface Device {
+  id: number | string;
+  modelName: string;
+  osName: string;
+  osVersion: string;
+  uuid: string;
+  status: "available" | "in_use";
+  currentUserName?: string;
+  registeredAt: string | Date;
 }
 
 export function Devices({ user }: DevicesProps) {
@@ -14,6 +27,11 @@ export function Devices({ user }: DevicesProps) {
   const [sortColumn, setSortColumn] = useState<string>("id");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [statusFilter, setStatusFilter] = useState<"all" | "available" | "in_use">("all");
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteSuccess, setDeleteSuccess] = useState<string | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<number | null>(null);
+  const [selectedDeviceName, setSelectedDeviceName] = useState<string>("");
 
   // URLクエリパラメータから初期フィルタを設定
   useEffect(() => {
@@ -27,7 +45,17 @@ export function Devices({ user }: DevicesProps) {
   const csvQuery = trpc.devices.csv.useQuery();
   const deleteMutation = trpc.devices.delete.useMutation({
     onSuccess: () => {
+      setDeleteSuccess("端末を削除しました");
+      setDeleteError(null);
+      setDeleteConfirmOpen(false);
+      setTimeout(() => setDeleteSuccess(null), 3000);
       devicesQuery.refetch();
+    },
+    onError: (error: any) => {
+      const errorMessage = error?.message || "削除に失敗しました";
+      setDeleteError(errorMessage);
+      setDeleteSuccess(null);
+      console.error("Delete error:", error);
     },
   });
 
@@ -48,10 +76,24 @@ export function Devices({ user }: DevicesProps) {
     }
   };
 
-  const handleDelete = (deviceId: number) => {
-    if (confirm("この端末を削除してもよろしいですか？")) {
-      deleteMutation.mutate({ id: deviceId });
+  const handleDeleteClick = (deviceId: number | string, deviceName: string) => {
+    setSelectedDeviceId(typeof deviceId === "string" ? parseInt(deviceId, 10) : deviceId);
+    setSelectedDeviceName(deviceName);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (selectedDeviceId !== null) {
+      setDeleteError(null);
+      setDeleteSuccess(null);
+      deleteMutation.mutate({ id: selectedDeviceId });
     }
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteConfirmOpen(false);
+    setSelectedDeviceId(null);
+    setSelectedDeviceName("");
   };
 
   const handleSort = (column: string) => {
@@ -115,6 +157,16 @@ export function Devices({ user }: DevicesProps) {
 
   return (
     <div className="devices-container">
+      {deleteError && (
+        <div className="error-banner">
+          <p>{deleteError}</p>
+        </div>
+      )}
+      {deleteSuccess && (
+        <div className="success-banner">
+          <p>{deleteSuccess}</p>
+        </div>
+      )}
       <div className="devices-header">
         <div>
           <h1>端末管理</h1>
@@ -187,11 +239,11 @@ export function Devices({ user }: DevicesProps) {
                     {device.status === "available" && (
                       <button
                         className="delete-button"
-                        onClick={() => handleDelete(typeof device.id === "string" ? parseInt(device.id, 10) : device.id)}
+                        onClick={() => handleDeleteClick(device.id, device.modelName)}
                         disabled={deleteMutation.isPending}
                         title="この端末を削除"
                       >
-                        削除
+                        {deleteMutation.isPending ? "削除中..." : "削除"}
                       </button>
                     )}
                   </div>
@@ -207,6 +259,14 @@ export function Devices({ user }: DevicesProps) {
           <p>条件に合致する端末がありません</p>
         </div>
       )}
+
+      <DeleteConfirmDialog
+        isOpen={deleteConfirmOpen}
+        deviceName={selectedDeviceName}
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        isLoading={deleteMutation.isPending}
+      />
     </div>
   );
 }

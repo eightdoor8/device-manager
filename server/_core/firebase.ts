@@ -552,3 +552,23 @@ async function cleanupOldRentalHistory() {
     // Don't throw - this is a cleanup operation
   }
 }
+
+/**
+ * Firestore からデバイスを削除
+ */
+export async function deleteDeviceFromFirestore(deviceId: number) {
+  try {
+    const db = await getFirestore();
+    
+    console.log(`[Firestore] Deleting device ${deviceId}...`);
+    
+    // Firestore の devices コレクションからデバイスを削除
+    await db.collection("devices").doc(String(deviceId)).delete();
+    
+    console.log(`[Firestore] Deleted device ${deviceId}`);
+    return { success: true };
+  } catch (error) {
+    console.error("[Firestore] Error deleting device:", error);
+    throw error;
+  }
+}
