@@ -1,51 +1,74 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * iOS Design System - Apple Human Interface Guidelines Compliant
+ * 
+ * Color palette follows Apple's system colors for iOS 14+
+ * Supports both Light and Dark modes automatically
  */
 
 import { Platform } from "react-native";
 
-const tintColorLight = "#2196F3";
-const tintColorDark = "#4CAF50";
+// iOS Standard Colors (Apple HIG)
+const iOSBlueLight = "#007AFF";
+const iOSBlueDark = "#0A84FF";
+const iOSGreenLight = "#34C759";
+const iOSGreenDark = "#30B0C0";
+const iOSRedLight = "#FF3B30";
+const iOSRedDark = "#FF453A";
+const iOSOrangeLight = "#FF9500";
 
 export const Colors = {
   light: {
-    text: "#212121",
-    background: "#FFFFFF",
-    tint: tintColorLight,
-    icon: "#757575",
-    tabIconDefault: "#757575",
-    tabIconSelected: tintColorLight,
-    secondary: "#4CAF50",
-    error: "#F44336",
-    textSecondary: "#757575",
+    // Text colors
+    text: "#000000",
+    textSecondary: "#666666",
     textDisabled: "#BDBDBD",
+    
+    // Background colors
+    background: "#FFFFFF",
     card: "#F5F5F5",
+    
+    // Interactive colors
+    tint: iOSBlueLight,
+    icon: "#666666",
+    tabIconDefault: "#666666",
+    tabIconSelected: iOSBlueLight,
+    
+    // Status colors
+    secondary: iOSGreenLight,
+    error: iOSRedLight,
+    warning: iOSOrangeLight,
+    success: iOSGreenLight,
   },
   dark: {
+    // Text colors
     text: "#FFFFFF",
-    background: "#121212",
-    tint: tintColorDark,
-    icon: "#BDBDBD",
-    tabIconDefault: "#BDBDBD",
-    tabIconSelected: tintColorDark,
-    secondary: "#4CAF50",
-    error: "#F44336",
-    textSecondary: "#BDBDBD",
+    textSecondary: "#999999",
     textDisabled: "#757575",
-    card: "#1E1E1E",
+    
+    // Background colors
+    background: "#000000",
+    card: "#1C1C1E",
+    
+    // Interactive colors
+    tint: iOSBlueDark,
+    icon: "#999999",
+    tabIconDefault: "#999999",
+    tabIconSelected: iOSBlueDark,
+    
+    // Status colors
+    secondary: iOSGreenDark,
+    error: iOSRedDark,
+    warning: iOSOrangeLight,
+    success: iOSGreenDark,
   },
 };
 
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
+    /** iOS system font stack */
     sans: "system-ui",
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
     serif: "ui-serif",
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
     rounded: "ui-rounded",
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
     mono: "ui-monospace",
   },
   default: {
@@ -61,3 +84,82 @@ export const Fonts = Platform.select({
     mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
   },
 });
+
+/**
+ * iOS Typography Scale
+ * Based on Apple's Dynamic Type system
+ */
+export const Typography = {
+  largeTitle: {
+    fontSize: 34,
+    fontWeight: "bold" as const,
+    lineHeight: 41,
+  },
+  title1: {
+    fontSize: 28,
+    fontWeight: "bold" as const,
+    lineHeight: 34,
+  },
+  title2: {
+    fontSize: 22,
+    fontWeight: "bold" as const,
+    lineHeight: 28,
+  },
+  title3: {
+    fontSize: 20,
+    fontWeight: "600" as const,
+    lineHeight: 25,
+  },
+  headline: {
+    fontSize: 17,
+    fontWeight: "600" as const,
+    lineHeight: 22,
+  },
+  body: {
+    fontSize: 17,
+    fontWeight: "400" as const,
+    lineHeight: 22,
+  },
+  callout: {
+    fontSize: 16,
+    fontWeight: "400" as const,
+    lineHeight: 21,
+  },
+  subheadline: {
+    fontSize: 15,
+    fontWeight: "400" as const,
+    lineHeight: 20,
+  },
+  caption1: {
+    fontSize: 13,
+    fontWeight: "400" as const,
+    lineHeight: 18,
+  },
+  caption2: {
+    fontSize: 11,
+    fontWeight: "400" as const,
+    lineHeight: 14,
+  },
+};
+
+/**
+ * iOS Spacing Scale (8pt grid)
+ */
+export const Spacing = {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 24,
+  xxl: 32,
+};
+
+/**
+ * iOS Border Radius
+ */
+export const BorderRadius = {
+  button: 8,
+  card: 12,
+  modal: 16,
+  sheet: 20,
+};
