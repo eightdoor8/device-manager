@@ -10,7 +10,7 @@
  * ✅ Only types, schemas, and type exports
  */
 
-export * from "./schemas";
+export * from "./schemas.js";
 
 // Re-export tRPC types for convenience
 export type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
