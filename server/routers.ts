@@ -5,30 +5,16 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import * as db from "./db";
 import { getDevicesFromFirestore, getUsersFromFirestore, getDevicesFromFirebase, getUsersFromFirebase, recordRentalHistory, recordRentalReturn, getRentalHistoryFromFirestore, deleteRentalHistoryFromFirestore, deleteDeviceFromFirestore } from "./_core/firebase";
+// Import schemas from @repo/api
+import * as schemas from "@repo/api";
 
 export const appRouter = router({
   system: systemRouter,
   auth: router({
     me: publicProcedure.query((opts) => opts.ctx.user),
     register: publicProcedure
-      .input(
-        z.object({
-          email: z.string().email(),
-          password: z.string().min(6),
-          name: z.string().optional(),
-        })
-      )
-      .output(
-        z.object({
-          user: z.object({
-            id: z.number(),
-            openId: z.string(),
-            email: z.string().nullable(),
-            name: z.string().nullable(),
-            role: z.string(),
-          }),
-        })
-      )
+      .input(schemas.registerInputSchema)
+      .output(schemas.authRegisterOutputSchema)
       .mutation(async ({ input, ctx }) => {
         const user = await db.createUserWithPassword(input.email, input.password, input.name);
         
@@ -52,23 +38,8 @@ export const appRouter = router({
         };
       }),
     login: publicProcedure
-      .input(
-        z.object({
-          email: z.string().email(),
-          password: z.string().min(1),
-        })
-      )
-      .output(
-        z.object({
-          user: z.object({
-            id: z.number(),
-            openId: z.string(),
-            email: z.string().nullable(),
-            name: z.string().nullable(),
-            role: z.string(),
-          }),
-        })
-      )
+      .input(schemas.loginInputSchema)
+      .output(schemas.authLoginOutputSchema)
       .mutation(async ({ input, ctx }) => {
         const user = await db.getUserByEmail(input.email);
         
@@ -105,13 +76,15 @@ export const appRouter = router({
           },
         };
       }),
-    logout: publicProcedure.mutation(({ ctx }) => {
-      const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
-      return {
-        success: true,
-      } as const;
-    }),
+    logout: publicProcedure
+      .output(schemas.authLogoutOutputSchema)
+      .mutation(({ ctx }) => {
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+        return {
+          success: true,
+        } as const;
+      }),
   }),
 
   // User management
@@ -145,7 +118,7 @@ export const appRouter = router({
     }),
 
     get: protectedProcedure
-      .input(z.object({ id: z.number() }))
+      .input(schemas.getUserInputSchema)
       .query(async ({ input, ctx }) => {
         if (ctx.user?.role !== "admin") {
           throw new Error("Unauthorized");
@@ -154,7 +127,8 @@ export const appRouter = router({
       }),
 
     updateRole: protectedProcedure
-      .input(z.object({ userId: z.number(), role: z.enum(["user", "admin"]), email: z.string().optional() }))
+      .input(schemas.updateUserRoleInputSchema)
+      .output(schemas.updateUserRoleOutputSchema)
       .mutation(async ({ input, ctx }) => {
         if (ctx.user?.role !== "admin") {
           throw new Error("Unauthorized");
@@ -191,24 +165,13 @@ export const appRouter = router({
     }),
 
     get: protectedProcedure
-      .input(z.object({ id: z.number() }))
+      .input(schemas.getDeviceInputSchema)
       .query(async ({ input }) => {
         return db.getDeviceById(input.id);
       }),
 
     create: protectedProcedure
-      .input(
-        z.object({
-          modelName: z.string(),
-          osName: z.string(),
-          osVersion: z.string(),
-          manufacturer: z.string(),
-          screenSize: z.string().optional(),
-          physicalMemory: z.string().optional(),
-          uuid: z.string(),
-          memo: z.string().optional(),
-        })
-      )
+      .input(schemas.createDeviceInputSchema)
       .mutation(async ({ input, ctx }) => {
         if (ctx.user?.role !== "admin") {
           throw new Error("Unauthorized");
@@ -223,15 +186,8 @@ export const appRouter = router({
       }),
 
     updateStatus: protectedProcedure
-      .input(
-        z.object({
-          id: z.number(),
-          status: z.enum(["available", "in_use"]),
-          userId: z.number().optional(),
-          userName: z.string().optional(),
-          deviceName: z.string().optional(),
-        })
-      )
+      .input(schemas.updateDeviceStatusInputSchema)
+      .output(schemas.updateDeviceStatusOutputSchema)
       .mutation(async ({ input, ctx }) => {
         if (ctx.user?.role !== "admin") {
           throw new Error("Unauthorized");
@@ -274,11 +230,12 @@ export const appRouter = router({
           }
         }
         
-        return { success: true };
+         return { success: true };
       }),
 
     delete: protectedProcedure
-      .input(z.object({ id: z.string() }))
+      .input(schemas.deleteDeviceInputSchema)
+      .output(schemas.deleteDeviceOutputSchema)
       .mutation(async ({ input, ctx }) => {
         if (ctx.user?.role !== "admin") {
           throw new Error("Unauthorized");
@@ -309,15 +266,12 @@ export const appRouter = router({
     }),
 
     byUser: protectedProcedure
-      .input(z.object({ userId: z.number() }))
+      .input(schemas.getDevicesByUserInputSchema)
       .query(async ({ input }) => {
         return db.getDevicesByUser(input.userId);
       }),
 
     csv: protectedProcedure.query(async ({ ctx }) => {
-      if (ctx.user?.role !== "admin") {
-        throw new Error("Unauthorized");
-      }
       // Try to get devices from Firestore first, then Firebase Realtime DB, then MySQL
       let devices: any[] = [];
       try {
@@ -385,49 +339,42 @@ export const appRouter = router({
     }),
 
     record: protectedProcedure
-      .input(
-        z.object({
-          deviceId: z.number(),
-          deviceName: z.string(),
-          userId: z.string(),
-          userName: z.string(),
-          borrowedAt: z.date(),
-        })
-      )
+      .input(schemas.recordRentalInputSchema)
+      .output(schemas.recordRentalOutputSchema)
       .mutation(async ({ input, ctx }) => {
         if (ctx.user?.role !== "admin") {
           throw new Error("Unauthorized");
         }
-        return recordRentalHistory(
+        await recordRentalHistory(
           input.deviceId,
           input.deviceName,
           input.userId,
           input.userName,
           input.borrowedAt
         );
+        return { success: true };
       }),
 
     return: protectedProcedure
-      .input(
-        z.object({
-          rentalHistoryId: z.string(),
-          returnedAt: z.date(),
-        })
-      )
+      .input(schemas.returnRentalInputSchema)
+      .output(schemas.returnRentalOutputSchema)
       .mutation(async ({ input, ctx }) => {
         if (ctx.user?.role !== "admin") {
           throw new Error("Unauthorized");
         }
-        return recordRentalReturn(input.rentalHistoryId, input.returnedAt);
+        await recordRentalReturn(input.rentalHistoryId, input.returnedAt);
+        return { success: true };
       }),
 
     delete: protectedProcedure
-      .input(z.object({ rentalHistoryId: z.string() }))
+      .input(schemas.deleteRentalHistoryInputSchema)
+      .output(schemas.deleteRentalHistoryOutputSchema)
       .mutation(async ({ input, ctx }) => {
         if (ctx.user?.role !== "admin") {
           throw new Error("Unauthorized");
         }
-        return deleteRentalHistoryFromFirestore(input.rentalHistoryId);
+        await deleteRentalHistoryFromFirestore(input.rentalHistoryId);
+        return { success: true };
       }),
   }),
 });
