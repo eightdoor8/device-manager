@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink } from "@trpc/client";
-import superjson from "superjson";
+import { SuperJSON } from "superjson";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { trpc } from "./trpc";
@@ -14,7 +14,7 @@ export function TRPCProvider({ children }: { children: ReactNode }) {
       links: [
         httpBatchLink({
           url: `${API_URL}/api/trpc`,
-          transformer: superjson,
+          transformer: SuperJSON as any,
           fetch: async (input, init) => {
             return fetch(input, {
               ...init,

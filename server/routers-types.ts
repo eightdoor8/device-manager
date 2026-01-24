@@ -3,18 +3,29 @@
  * 
  * This file is used by admin to get the AppRouter type without importing
  * the implementation (which contains firebase-admin, drizzle-orm, etc.)
+ * 
+ * Key: We define a minimal context type here instead of importing from server/_core/context
+ * to avoid pulling in server dependencies into the admin bundle.
  */
 
 import { z } from "zod";
 import { initTRPC } from "@trpc/server";
-import type { TrpcContext } from "./_core/context";
-import * as schemas from "@repo/api";
+import type * as schemas from "@repo/api";
 
-// Re-export schemas from @repo/api
-export { schemas };
+// Minimal context type for type inference only
+// This mirrors TrpcContext but without importing server internals
+type MinimalContext = {
+  user: {
+    id: number;
+    openId: string;
+    email: string | null;
+    name: string | null;
+    role: "user" | "admin";
+  } | null;
+};
 
 // Create tRPC instance for type inference only
-const t = initTRPC.context<TrpcContext>().create();
+const t = initTRPC.context<MinimalContext>().create();
 
 // Define router structure for type inference
 export const appRouterType = t.router({
@@ -22,62 +33,62 @@ export const appRouterType = t.router({
   auth: t.router({
     me: t.procedure.query(async () => null),
     register: t.procedure
-      .input(schemas.registerInputSchema)
-      .output(schemas.authRegisterOutputSchema)
+      .input(z.any())
+      .output(z.any())
       .mutation(async () => ({ user: {} as any })),
     login: t.procedure
-      .input(schemas.loginInputSchema)
-      .output(schemas.authLoginOutputSchema)
+      .input(z.any())
+      .output(z.any())
       .mutation(async () => ({ user: {} as any })),
     logout: t.procedure
-      .output(schemas.authLogoutOutputSchema)
+      .output(z.any())
       .mutation(async () => ({ success: true as const })),
   }),
   users: t.router({
-    list: t.procedure.query(async () => []),
+    list: t.procedure.query(async () => [] as any[]),
     get: t.procedure
-      .input(schemas.getUserInputSchema)
-      .query(async () => ({})),
+      .input(z.any())
+      .query(async () => ({} as any)),
     updateRole: t.procedure
-      .input(schemas.updateUserRoleInputSchema)
-      .output(schemas.updateUserRoleOutputSchema)
+      .input(z.any())
+      .output(z.any())
       .mutation(async () => ({ success: true as const })),
   }),
   devices: t.router({
-    list: t.procedure.query(async () => []),
+    list: t.procedure.query(async () => [] as any[]),
     get: t.procedure
-      .input(schemas.getDeviceInputSchema)
-      .query(async () => ({})),
+      .input(z.any())
+      .query(async () => ({} as any)),
     create: t.procedure
-      .input(schemas.createDeviceInputSchema)
-      .mutation(async () => ({})),
+      .input(z.any())
+      .mutation(async () => ({} as any)),
     updateStatus: t.procedure
-      .input(schemas.updateDeviceStatusInputSchema)
-      .output(schemas.updateDeviceStatusOutputSchema)
+      .input(z.any())
+      .output(z.any())
       .mutation(async () => ({ success: true as const })),
     delete: t.procedure
-      .input(schemas.deleteDeviceInputSchema)
-      .output(schemas.deleteDeviceOutputSchema)
+      .input(z.any())
+      .output(z.any())
       .mutation(async () => ({ success: true as const })),
-    available: t.procedure.query(async () => []),
+    available: t.procedure.query(async () => [] as any[]),
     byUser: t.procedure
-      .input(schemas.getDevicesByUserInputSchema)
-      .query(async () => []),
+      .input(z.any())
+      .query(async () => [] as any[]),
     csv: t.procedure.query(async () => ""),
   }),
   rentalHistory: t.router({
-    list: t.procedure.query(async () => []),
+    list: t.procedure.query(async () => [] as any[]),
     record: t.procedure
-      .input(schemas.recordRentalInputSchema)
-      .output(schemas.recordRentalOutputSchema)
+      .input(z.any())
+      .output(z.any())
       .mutation(async () => ({ success: true as const })),
     return: t.procedure
-      .input(schemas.returnRentalInputSchema)
-      .output(schemas.returnRentalOutputSchema)
+      .input(z.any())
+      .output(z.any())
       .mutation(async () => ({ success: true as const })),
     delete: t.procedure
-      .input(schemas.deleteRentalHistoryInputSchema)
-      .output(schemas.deleteRentalHistoryOutputSchema)
+      .input(z.any())
+      .output(z.any())
       .mutation(async () => ({ success: true as const })),
   }),
 });
