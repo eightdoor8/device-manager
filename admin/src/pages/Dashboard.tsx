@@ -1,8 +1,24 @@
-import { useNavigate } from "react-router-dom";
-import { trpc } from "../lib/trpc";
-import { LoadingSpinner } from "../components/LoadingSpinner";
-import { ErrorMessage } from "../components/ErrorMessage";
-import "../styles/Dashboard.css";
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '../lib/firebase-auth';
+import { LoadingSpinner } from '../components/LoadingSpinner';
+import { ErrorMessage } from '../components/ErrorMessage';
+import '../styles/Dashboard.css';
+
+interface Device {
+  id: string;
+  name: string;
+  status: 'available' | 'in_use' | 'maintenance';
+  [key: string]: any;
+}
+
+interface User {
+  id: string;
+  email: string;
+  name: string;
+  [key: string]: any;
+}
 
 interface DashboardProps {
   user?: any;
@@ -10,14 +26,53 @@ interface DashboardProps {
 
 export function Dashboard({ user }: DashboardProps) {
   const navigate = useNavigate();
-  const devicesQuery = trpc.devices.list.useQuery();
-  const usersQuery = trpc.users.list.useQuery();
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Firestore からデバイス情報を取得
+        const devicesRef = collection(db, 'devices');
+        const devicesSnapshot = await getDocs(devicesRef);
+        const devicesData = devicesSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Device[];
+        setDevices(devicesData);
+
+        // Firestore からユーザー情報を取得
+        const usersRef = collection(db, 'users');
+        const usersSnapshot = await getDocs(usersRef);
+        const usersData = usersSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as User[];
+        setUsers(usersData);
+
+        console.log('[Dashboard] Loaded devices:', devicesData.length);
+        console.log('[Dashboard] Loaded users:', usersData.length);
+      } catch (err: any) {
+        console.error('[Dashboard] Error loading data:', err);
+        setError(err.message || 'データの読み込みに失敗しました');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const handleCardClick = (path: string) => {
     navigate(path);
   };
 
-  if (devicesQuery.isLoading || usersQuery.isLoading) {
+  if (loading) {
     return (
       <div className="dashboard-container">
         <LoadingSpinner message="ダッシュボードを読み込み中..." />
@@ -25,9 +80,17 @@ export function Dashboard({ user }: DashboardProps) {
     );
   }
 
-  const deviceCount = devicesQuery.data?.length || 0;
-  const userCount = usersQuery.data?.length || 0;
-  const availableDevices = devicesQuery.data?.filter((d) => d.status === "available").length || 0;
+  if (error) {
+    return (
+      <div className="dashboard-container">
+        <ErrorMessage message={error} />
+      </div>
+    );
+  }
+
+  const deviceCount = devices.length;
+  const userCount = users.length;
+  const availableDevices = devices.filter((d) => d.status === 'available').length;
 
   return (
     <div className="dashboard-container">
@@ -39,12 +102,12 @@ export function Dashboard({ user }: DashboardProps) {
       <div className="stats-grid">
         <div
           className="stat-card"
-          onClick={() => handleCardClick("/devices")}
+          onClick={() => handleCardClick('/devices')}
           role="button"
           tabIndex={0}
           onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              handleCardClick("/devices");
+            if (e.key === 'Enter' || e.key === ' ') {
+              handleCardClick('/devices');
             }
           }}
         >
@@ -57,12 +120,12 @@ export function Dashboard({ user }: DashboardProps) {
 
         <div
           className="stat-card"
-          onClick={() => navigate("/devices?status=available")}
+          onClick={() => navigate('/devices?status=available')}
           role="button"
           tabIndex={0}
           onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              navigate("/devices?status=available");
+            if (e.key === 'Enter' || e.key === ' ') {
+              navigate('/devices?status=available');
             }
           }}
         >
@@ -75,12 +138,12 @@ export function Dashboard({ user }: DashboardProps) {
 
         <div
           className="stat-card"
-          onClick={() => handleCardClick("/users")}
+          onClick={() => handleCardClick('/users')}
           role="button"
           tabIndex={0}
           onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              handleCardClick("/users");
+            if (e.key === 'Enter' || e.key === ' ') {
+              handleCardClick('/users');
             }
           }}
         >
