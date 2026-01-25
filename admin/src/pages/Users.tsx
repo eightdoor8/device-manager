@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { trpc } from "../lib/trpc";
+import { useState, useEffect } from "react";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "../lib/firebase-auth";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ErrorMessage } from "../components/ErrorMessage";
 import "../styles/Users.css";
@@ -8,9 +9,8 @@ interface UsersProps {
   user?: any;
 }
 
-// Normalize user object to handle both MySQL and Firebase formats
 interface NormalizedUser {
-  id: number | string;
+  id: string;
   name: string | null;
   email: string | null;
   role: "user" | "admin";
@@ -24,27 +24,41 @@ export function Users({ user }: UsersProps) {
   const [roleFilter, setRoleFilter] = useState<"all" | "admin" | "user">("all");
   const [successMessage, setSuccessMessage] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const [users, setUsers] = useState<NormalizedUser[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
 
-  const usersQuery = trpc.users.list.useQuery();
-  const updateRoleMutation = trpc.users.updateRole.useMutation({
-    onSuccess: () => {
-      setSuccessMessage("ロールを更新しました");
-      setErrorMessage("");
-      setTimeout(() => setSuccessMessage(""), 3000);
-      usersQuery.refetch();
-    },
-    onError: (error) => {
-      setErrorMessage(error.message || "ロール更新に失敗しました");
-      setSuccessMessage("");
-    },
-  });
+  // Firestore からユーザー情報を読み込み
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        setIsLoading(true);
+        setIsError(false);
+        const usersCollection = collection(db, "users");
+        const usersSnapshot = await getDocs(usersCollection);
+        const usersData = usersSnapshot.docs
+          .map((doc) => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              name: data.name || null,
+              email: data.email || null,
+              role: data.role || "user",
+              createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
+              updatedAt: data.updatedAt ? new Date(data.updatedAt) : new Date(),
+            } as NormalizedUser;
+          });
+        setUsers(usersData);
+      } catch (error) {
+        console.error("Error loading users:", error);
+        setIsError(true);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const handleRoleChange = (userId: number | string, newRole: "user" | "admin", email?: string) => {
-    const numericId = typeof userId === "string" ? parseInt(userId, 10) : userId;
-    setErrorMessage("");
-    setSuccessMessage("");
-    updateRoleMutation.mutate({ userId: numericId, role: newRole, email });
-  };
+    loadUsers();
+  }, []);
 
   const handleSort = (column: string) => {
     if (sortColumn === column) {
@@ -55,7 +69,7 @@ export function Users({ user }: UsersProps) {
     }
   };
 
-  if (usersQuery.isLoading) {
+  if (isLoading) {
     return (
       <div className="users-container">
         <LoadingSpinner message="ユーザー情報を読み込み中..." />
@@ -63,34 +77,25 @@ export function Users({ user }: UsersProps) {
     );
   }
 
-  if (usersQuery.isError) {
+  if (isError) {
     return (
       <div className="users-container">
         <ErrorMessage
           message="ユーザー情報の取得に失敗しました。"
-          onRetry={() => usersQuery.refetch()}
+          onRetry={() => window.location.reload()}
         />
       </div>
     );
   }
 
-  // Normalize users to handle both MySQL and Firebase formats
-  let users: NormalizedUser[] = (usersQuery.data || []).map((u: any) => ({
-    id: u.id,
-    name: u.name || null,
-    email: u.email || null,
-    role: u.role || "user",
-    createdAt: u.createdAt ? new Date(u.createdAt) : new Date(),
-    updatedAt: u.updatedAt ? new Date(u.updatedAt) : new Date(),
-  }));
-
   // フィルタリング
+  let filteredUsers = users;
   if (roleFilter !== "all") {
-    users = users.filter((u) => u.role === roleFilter);
+    filteredUsers = filteredUsers.filter((u) => u.role === roleFilter);
   }
 
   // ソート
-  users = [...users].sort((a, b) => {
+  filteredUsers = [...filteredUsers].sort((a, b) => {
     let aVal: any = a[sortColumn as keyof typeof a];
     let bVal: any = b[sortColumn as keyof typeof b];
 
@@ -162,23 +167,15 @@ export function Users({ user }: UsersProps) {
             </tr>
           </thead>
           <tbody>
-            {users.map((user) => (
+            {filteredUsers.map((user) => (
               <tr key={user.id}>
                 <td>{user.id}</td>
                 <td>{user.name || "-"}</td>
                 <td>{user.email || "-"}</td>
                 <td>
-                  <select
-                    value={user.role}
-                    onChange={(e) =>
-                      handleRoleChange(user.id, e.target.value as "user" | "admin", user.email || undefined)
-                    }
-                    className="role-select"
-                    disabled={updateRoleMutation.isPending}
-                  >
-                    <option value="user">ユーザー</option>
-                    <option value="admin">管理者</option>
-                  </select>
+                  <span className={`role-badge role-${user.role}`}>
+                    {user.role === "admin" ? "管理者" : "ユーザー"}
+                  </span>
                 </td>
                 <td>{new Date(user.createdAt).toLocaleDateString("ja-JP")}</td>
               </tr>
@@ -187,7 +184,7 @@ export function Users({ user }: UsersProps) {
         </table>
       </div>
 
-      {users.length === 0 && (
+      {filteredUsers.length === 0 && (
         <div className="empty-state">
           <p>条件に合致するユーザーがありません</p>
         </div>

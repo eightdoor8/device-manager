@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { trpc } from "../lib/trpc";
+import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
+import { db } from "../lib/firebase-auth";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { DeleteConfirmDialog } from "../components/DeleteConfirmDialog";
@@ -12,7 +13,7 @@ interface DevicesProps {
 }
 
 interface Device {
-  id: number | string;
+  id: string;
   modelName: string;
   osName: string;
   osVersion: string;
@@ -32,6 +33,10 @@ export function Devices({ user }: DevicesProps) {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [selectedDeviceName, setSelectedDeviceName] = useState<string>("");
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // URLクエリパラメータから初期フィルタを設定
   useEffect(() => {
@@ -41,28 +46,49 @@ export function Devices({ user }: DevicesProps) {
     }
   }, [searchParams]);
 
-  const devicesQuery = trpc.devices.list.useQuery();
-  const csvQuery = trpc.devices.csv.useQuery();
-  const deleteMutation = trpc.devices.delete.useMutation({
-    onSuccess: () => {
-      setDeleteSuccess("端末を削除しました");
-      setDeleteError(null);
-      setDeleteConfirmOpen(false);
-      setTimeout(() => setDeleteSuccess(null), 3000);
-      devicesQuery.refetch();
-    },
-    onError: (error: any) => {
-      const errorMessage = error?.message || "削除に失敗しました";
-      setDeleteError(errorMessage);
-      setDeleteSuccess(null);
-      console.error("Delete error:", error);
-    },
-  });
+  // Firestore からデバイス情報を読み込み
+  useEffect(() => {
+    const loadDevices = async () => {
+      try {
+        setIsLoading(true);
+        setIsError(false);
+        const devicesCollection = collection(db, "devices");
+        const devicesSnapshot = await getDocs(devicesCollection);
+        const devicesData = devicesSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        } as Device));
+        setDevices(devicesData);
+      } catch (error) {
+        console.error("Error loading devices:", error);
+        setIsError(true);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadDevices();
+  }, []);
 
   const handleDownloadCSV = async () => {
     try {
-      if (!csvQuery.data) return;
-      const blob = new Blob([csvQuery.data], { type: "text/csv;charset=utf-8;" });
+      const csv = [
+        ["ID", "モデル", "OS", "バージョン", "UUID", "ステータス", "現在のユーザー", "登録日時"],
+        ...devices.map((d) => [
+          d.id,
+          d.modelName,
+          d.osName,
+          d.osVersion,
+          d.uuid,
+          d.status === "available" ? "利用可能" : "貸出中",
+          d.currentUserName || "-",
+          new Date(d.registeredAt).toLocaleDateString("ja-JP"),
+        ]),
+      ]
+        .map((row) => row.map((cell) => `"${cell}"`).join(","))
+        .join("\n");
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
       const link = document.createElement("a");
       const url = URL.createObjectURL(blob);
       link.setAttribute("href", url);
@@ -76,17 +102,37 @@ export function Devices({ user }: DevicesProps) {
     }
   };
 
-  const handleDeleteClick = (deviceId: number | string, deviceName: string) => {
-    setSelectedDeviceId(String(deviceId));
+  const handleDeleteClick = (deviceId: string, deviceName: string) => {
+    setSelectedDeviceId(deviceId);
     setSelectedDeviceName(deviceName);
     setDeleteConfirmOpen(true);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (selectedDeviceId !== null) {
-      setDeleteError(null);
-      setDeleteSuccess(null);
-      deleteMutation.mutate({ id: selectedDeviceId });
+      try {
+        setIsDeleting(true);
+        setDeleteError(null);
+        setDeleteSuccess(null);
+        await deleteDoc(doc(db, "devices", selectedDeviceId));
+        setDeleteSuccess("端末を削除しました");
+        setDeleteConfirmOpen(false);
+        setTimeout(() => setDeleteSuccess(null), 3000);
+        // 削除後、デバイス一覧を再読み込み
+        const devicesCollection = collection(db, "devices");
+        const devicesSnapshot = await getDocs(devicesCollection);
+        const devicesData = devicesSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        } as Device));
+        setDevices(devicesData);
+      } catch (error) {
+        console.error("Delete error:", error);
+        setDeleteError("削除に失敗しました");
+        setDeleteSuccess(null);
+      } finally {
+        setIsDeleting(false);
+      }
     }
   };
 
@@ -114,7 +160,7 @@ export function Devices({ user }: DevicesProps) {
     }
   };
 
-  if (devicesQuery.isLoading) {
+  if (isLoading) {
     return (
       <div className="devices-container">
         <LoadingSpinner message="端末情報を読み込み中..." />
@@ -122,26 +168,26 @@ export function Devices({ user }: DevicesProps) {
     );
   }
 
-  if (devicesQuery.isError) {
+  if (isError) {
     return (
       <div className="devices-container">
         <ErrorMessage
           message="端末情報の取得に失敗しました。"
-          onRetry={() => devicesQuery.refetch()}
+          onRetry={() => window.location.reload()}
         />
       </div>
     );
   }
 
-  let devices = devicesQuery.data || [];
+  let filteredDevices = devices;
 
   // フィルタリング
   if (statusFilter !== "all") {
-    devices = devices.filter((d) => d.status === statusFilter);
+    filteredDevices = filteredDevices.filter((d) => d.status === statusFilter);
   }
 
   // ソート
-  devices = [...devices].sort((a, b) => {
+  filteredDevices = [...filteredDevices].sort((a, b) => {
     let aVal: any = a[sortColumn as keyof typeof a];
     let bVal: any = b[sortColumn as keyof typeof b];
 
@@ -172,7 +218,7 @@ export function Devices({ user }: DevicesProps) {
           <h1>端末管理</h1>
           <p>登録済み端末の一覧と管理</p>
         </div>
-        <button onClick={handleDownloadCSV} className="csv-button" disabled={!csvQuery.data}>
+        <button onClick={handleDownloadCSV} className="csv-button" disabled={devices.length === 0}>
           📥 CSV出力
         </button>
       </div>
@@ -217,7 +263,7 @@ export function Devices({ user }: DevicesProps) {
             </tr>
           </thead>
           <tbody>
-            {devices.map((device) => (
+            {filteredDevices.map((device) => (
               <tr key={device.id}>
                 <td>{device.id}</td>
                 <td>{device.modelName}</td>
@@ -240,10 +286,10 @@ export function Devices({ user }: DevicesProps) {
                       <button
                         className="delete-button"
                         onClick={() => handleDeleteClick(device.id, device.modelName)}
-                        disabled={deleteMutation.isPending}
+                        disabled={isDeleting}
                         title="この端末を削除"
                       >
-                        {deleteMutation.isPending ? "削除中..." : "削除"}
+                        {isDeleting ? "削除中..." : "削除"}
                       </button>
                     )}
                   </div>
@@ -254,7 +300,7 @@ export function Devices({ user }: DevicesProps) {
         </table>
       </div>
 
-      {devices.length === 0 && (
+      {filteredDevices.length === 0 && (
         <div className="empty-state">
           <p>条件に合致する端末がありません</p>
         </div>
@@ -265,7 +311,7 @@ export function Devices({ user }: DevicesProps) {
         deviceName={selectedDeviceName}
         onConfirm={handleConfirmDelete}
         onCancel={handleCancelDelete}
-        isLoading={deleteMutation.isPending}
+        isLoading={isDeleting}
       />
     </div>
   );
