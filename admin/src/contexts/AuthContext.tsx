@@ -1,14 +1,12 @@
 import type { ReactNode } from "react";
 import { createContext, useContext, useEffect, useState } from "react";
+import { onAuthStateChanged, signOut, type User as FirebaseUser } from "firebase/auth";
+import { auth } from "../lib/firebase-auth";
 
 interface User {
   id: string;
-  openId: string;
   email: string;
   name: string;
-  role: "admin" | "user";
-  loginMethod?: string;
-  lastSignedIn?: string;
 }
 
 interface AuthContextType {
@@ -24,69 +22,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Fetch user info from backend
-  const fetchUserInfo = async () => {
-    try {
-      const response = await fetch("/api/auth/me", {
-        method: "GET",
-        credentials: "include", // Include cookies
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.user) {
-          // Map backend user format to frontend User interface
-          const backendUser = data.user;
-          const user: User = {
-            id: backendUser.id || backendUser.openId,
-            openId: backendUser.openId,
-            email: backendUser.email || "",
-            name: backendUser.name || "",
-            role: "user", // Default role, will be updated by backend later if needed
-            loginMethod: backendUser.loginMethod,
-            lastSignedIn: backendUser.lastSignedIn,
-          };
-          setUser(user);
-          return;
-        }
-      }
-    } catch (error) {
-      console.error("Failed to fetch user info:", error);
-    }
-
-    // If backend fetch fails, try localStorage as fallback
-    const storedUser = localStorage.getItem("admin_user");
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-        return;
-      } catch (e) {
-        console.error("Failed to parse stored user:", e);
-        localStorage.removeItem("admin_user");
-      }
-    }
-
-    setUser(null);
-  };
-
   useEffect(() => {
-    fetchUserInfo().finally(() => {
+    // Firebase Authentication の状態を監視
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
+      if (firebaseUser) {
+        // ユーザーがログイン中
+        const user: User = {
+          id: firebaseUser.uid,
+          email: firebaseUser.email || "",
+          name: firebaseUser.displayName || firebaseUser.email || "",
+        };
+        setUser(user);
+        console.log("[AuthContext] User authenticated:", user.email);
+      } else {
+        // ユーザーがログアウト中
+        setUser(null);
+        console.log("[AuthContext] User not authenticated");
+      }
       setLoading(false);
     });
+
+    // クリーンアップ
+    return () => unsubscribe();
   }, []);
 
   const logout = async () => {
     try {
-      await fetch("/api/auth/logout", {
-        method: "POST",
-        credentials: "include",
-      });
+      await signOut(auth);
+      setUser(null);
+      console.log("[AuthContext] Logged out successfully");
     } catch (error) {
-      console.error("Logout failed:", error);
+      console.error("[AuthContext] Logout failed:", error);
     }
-
-    setUser(null);
-    localStorage.removeItem("admin_user");
   };
 
   return (

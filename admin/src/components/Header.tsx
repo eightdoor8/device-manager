@@ -25,9 +25,7 @@ export function Header() {
           <>
             <div className="user-info">
               <span className="user-name">{user.name || user.email}</span>
-              <span className="user-role">
-                {user.role === "admin" ? "管理者" : "ユーザー"}
-              </span>
+  
             </div>
             <button className="logout-button" onClick={handleLogout}>
               ログアウト
