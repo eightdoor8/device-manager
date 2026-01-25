@@ -24,10 +24,10 @@ console.log('[Firebase] Initializing with config:', {
 
 // Validate Firebase config
 if (!firebaseConfig.apiKey) {
-  console.error('[Firebase] Missing VITE_FIREBASE_API_KEY environment variable');
+  console.warn('[Firebase] Missing VITE_FIREBASE_API_KEY environment variable');
 }
 if (!firebaseConfig.projectId) {
-  console.error('[Firebase] Missing VITE_FIREBASE_PROJECT_ID environment variable');
+  console.warn('[Firebase] Missing VITE_FIREBASE_PROJECT_ID environment variable');
 }
 
 // Initialize Firebase
@@ -37,14 +37,15 @@ try {
   console.log('[Firebase] App initialized successfully');
 } catch (error) {
   console.error('[Firebase] Failed to initialize app:', error);
-  throw error;
+  // Don't throw - allow app to continue without Firebase
+  // This allows development without Firebase credentials
 }
 
 // Initialize Firebase Authentication
-export const auth = getAuth(app);
+export const auth = app ? getAuth(app) : (null as any);
 
 // Initialize Firestore
-export const db = getFirestore(app);
+export const db = app ? getFirestore(app) : (null as any);
 
 console.log('[Firebase] Authentication initialized successfully');
 console.log('[Firebase] Firestore initialized successfully');
