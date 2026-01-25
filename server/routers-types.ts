@@ -27,7 +27,7 @@ type MinimalContext = {
 const t = initTRPC.context<MinimalContext>().create();
 
 // Define router structure for type inference
-export const appRouterType = t.router({
+const appRouterType = t.router({
   system: t.router({}),
   auth: t.router({
     me: t.procedure.query(async () => null),

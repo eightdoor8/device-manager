@@ -21,8 +21,8 @@ export default function RentalHistory() {
       historyQuery.refetch();
       alert('履歴を削除しました');
     },
-    onError: (error) => {
-      alert(`エラー: ${error.message}`);
+    onError: (error: any) => {
+      alert(`エラー: ${error?.message || '不明なエラーが発生しました'}`);
     },
   });
 

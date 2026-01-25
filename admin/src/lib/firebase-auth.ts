@@ -22,8 +22,23 @@ console.log('[Firebase] Initializing with config:', {
   authDomain: firebaseConfig.authDomain,
 });
 
+// Validate Firebase config
+if (!firebaseConfig.apiKey) {
+  console.error('[Firebase] Missing VITE_FIREBASE_API_KEY environment variable');
+}
+if (!firebaseConfig.projectId) {
+  console.error('[Firebase] Missing VITE_FIREBASE_PROJECT_ID environment variable');
+}
+
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
+let app;
+try {
+  app = initializeApp(firebaseConfig);
+  console.log('[Firebase] App initialized successfully');
+} catch (error) {
+  console.error('[Firebase] Failed to initialize app:', error);
+  throw error;
+}
 
 // Initialize Firebase Authentication
 export const auth = getAuth(app);
