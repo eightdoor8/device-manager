@@ -23,32 +23,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Firebase Authentication の状態を監視
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
-      if (firebaseUser) {
-        // ユーザーがログイン中
-        const user: User = {
-          id: firebaseUser.uid,
-          email: firebaseUser.email || "",
-          name: firebaseUser.displayName || firebaseUser.email || "",
-        };
-        setUser(user);
-        console.log("[AuthContext] User authenticated:", user.email);
-      } else {
-        // ユーザーがログアウト中
-        setUser(null);
-        console.log("[AuthContext] User not authenticated");
-      }
+    // Check if Firebase is initialized
+    if (!auth) {
+      console.warn('[AuthContext] Firebase auth not initialized, using mock auth');
       setLoading(false);
-    });
+      return;
+    }
 
-    // クリーンアップ
-    return () => unsubscribe();
+    // Firebase Authentication の状態を監視
+    try {
+      const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
+        if (firebaseUser) {
+          // ユーザーがログイン中
+          const user: User = {
+            id: firebaseUser.uid,
+            email: firebaseUser.email || "",
+            name: firebaseUser.displayName || firebaseUser.email || "",
+          };
+          setUser(user);
+          console.log("[AuthContext] User authenticated:", user.email);
+        } else {
+          // ユーザーがログアウト中
+          setUser(null);
+          console.log("[AuthContext] User not authenticated");
+        }
+        setLoading(false);
+      });
+
+      // クリーンアップ
+      return () => unsubscribe();
+    } catch (error) {
+      console.error('[AuthContext] Error setting up auth listener:', error);
+      setLoading(false);
+    }
   }, []);
 
   const logout = async () => {
     try {
-      await signOut(auth);
+      if (auth) {
+        await signOut(auth);
+      }
       setUser(null);
       console.log("[AuthContext] Logged out successfully");
     } catch (error) {

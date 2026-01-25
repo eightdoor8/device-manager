@@ -34,6 +34,15 @@ export function Users({ user }: UsersProps) {
       try {
         setIsLoading(true);
         setIsError(false);
+        
+        // Check if db is initialized
+        if (!db) {
+          console.error("Firestore is not initialized. Check Firebase configuration.");
+          setIsError(true);
+          setIsLoading(false);
+          return;
+        }
+        
         const usersCollection = collection(db, "users");
         const usersSnapshot = await getDocs(usersCollection);
         const usersData = usersSnapshot.docs

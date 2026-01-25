@@ -52,6 +52,15 @@ export function Devices({ user }: DevicesProps) {
       try {
         setIsLoading(true);
         setIsError(false);
+        
+        // Check if db is initialized
+        if (!db) {
+          console.error("Firestore is not initialized. Check Firebase configuration.");
+          setIsError(true);
+          setIsLoading(false);
+          return;
+        }
+        
         const devicesCollection = collection(db, "devices");
         const devicesSnapshot = await getDocs(devicesCollection);
         const devicesData = devicesSnapshot.docs.map((doc) => ({
