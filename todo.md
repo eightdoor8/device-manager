@@ -348,3 +348,10 @@
 - [ ] TestFlight ビルド作成
 - [ ] App Store Connect 登録
 - [ ] QA チームへの配信
+
+## Google ログイン実装
+- [x] Firebase で Google OAuth を設定（Firebase Console で有効化）
+- [x] ログインページに Google ログインボタンを追加
+- [x] 新規登録ページに Google サインアップボタンを追加
+- [x] Google 認証フローをテスト（ローカルで確認完了）
+- [ ] Vercel にデプロイして本番環境でテスト
