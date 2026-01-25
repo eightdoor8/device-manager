@@ -10,7 +10,6 @@
 
 import { z } from "zod";
 import { initTRPC } from "@trpc/server";
-import type * as schemas from "@repo/api";
 
 // Minimal context type for type inference only
 // This mirrors TrpcContext but without importing server internals
