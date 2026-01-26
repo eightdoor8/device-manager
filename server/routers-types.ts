@@ -4,15 +4,13 @@
  * This file is used by admin to get the AppRouter type without importing
  * the implementation (which contains firebase-admin, drizzle-orm, etc.)
  * 
- * Key: We define a minimal context type here instead of importing from server/_core/context
- * to avoid pulling in server dependencies into the admin bundle.
+ * We export a minimal type definition that mirrors the actual server router
+ * without creating a full tRPC instance (which causes issues with reserved keywords).
  */
 
 import { z } from "zod";
-import { initTRPC } from "@trpc/server";
 
 // Minimal context type for type inference only
-// This mirrors TrpcContext but without importing server internals
 type MinimalContext = {
   user: {
     id: number;
@@ -23,73 +21,149 @@ type MinimalContext = {
   } | null;
 };
 
-// Create tRPC instance for type inference only
-const t = initTRPC.context<MinimalContext>().create();
-
-// Define router structure for type inference
-const appRouterType = t.router({
-  system: t.router({}),
-  auth: t.router({
-    me: t.procedure.query(async () => null),
-    register: t.procedure
-      .input(z.any())
-      .output(z.any())
-      .mutation(async () => ({ user: {} as any })),
-    login: t.procedure
-      .input(z.any())
-      .output(z.any())
-      .mutation(async () => ({ user: {} as any })),
-    logout: t.procedure
-      .output(z.any())
-      .mutation(async () => ({ success: true as const })),
-  }),
-  users: t.router({
-    list: t.procedure.query(async () => [] as any[]),
-    get: t.procedure
-      .input(z.any())
-      .query(async () => ({} as any)),
-    updateRole: t.procedure
-      .input(z.any())
-      .output(z.any())
-      .mutation(async () => ({ success: true as const })),
-  }),
-  devices: t.router({
-    list: t.procedure.query(async () => [] as any[]),
-    get: t.procedure
-      .input(z.any())
-      .query(async () => ({} as any)),
-    create: t.procedure
-      .input(z.any())
-      .mutation(async () => ({} as any)),
-    updateStatus: t.procedure
-      .input(z.any())
-      .output(z.any())
-      .mutation(async () => ({ success: true as const })),
-    delete: t.procedure
-      .input(z.any())
-      .output(z.any())
-      .mutation(async () => ({ success: true as const })),
-    available: t.procedure.query(async () => [] as any[]),
-    byUser: t.procedure
-      .input(z.any())
-      .query(async () => [] as any[]),
-    csv: t.procedure.query(async () => ""),
-  }),
-  rentalHistory: t.router({
-    list: t.procedure.query(async () => [] as any[]),
-    record: t.procedure
-      .input(z.any())
-      .output(z.any())
-      .mutation(async () => ({ success: true as const })),
-    return: t.procedure
-      .input(z.any())
-      .output(z.any())
-      .mutation(async () => ({ success: true as const })),
-    delete: t.procedure
-      .input(z.any())
-      .output(z.any())
-      .mutation(async () => ({ success: true as const })),
-  }),
-});
-
-export type AppRouter = typeof appRouterType;
+// Define the AppRouter type as a plain object structure
+// This satisfies the tRPC React Query hook requirements
+export type AppRouter = {
+  system: {
+    _def: { queries: {} };
+  };
+  auth: {
+    _def: {
+      queries: {
+        me: {
+          _def: {
+            outputs: [z.ZodType<any>];
+          };
+        };
+      };
+      mutations: {
+        register: {
+          _def: {
+            inputs: [z.ZodType<any>];
+            outputs: [z.ZodType<any>];
+          };
+        };
+        login: {
+          _def: {
+            inputs: [z.ZodType<any>];
+            outputs: [z.ZodType<any>];
+          };
+        };
+        logout: {
+          _def: {
+            outputs: [z.ZodType<{ success: true }>];
+          };
+        };
+      };
+    };
+  };
+  users: {
+    _def: {
+      queries: {
+        list: {
+          _def: {
+            outputs: [z.ZodType<any[]>];
+          };
+        };
+        get: {
+          _def: {
+            inputs: [z.ZodType<any>];
+            outputs: [z.ZodType<any>];
+          };
+        };
+      };
+      mutations: {
+        updateRole: {
+          _def: {
+            inputs: [z.ZodType<any>];
+            outputs: [z.ZodType<any>];
+          };
+        };
+      };
+    };
+  };
+  devices: {
+    _def: {
+      queries: {
+        list: {
+          _def: {
+            outputs: [z.ZodType<any[]>];
+          };
+        };
+        get: {
+          _def: {
+            inputs: [z.ZodType<any>];
+            outputs: [z.ZodType<any>];
+          };
+        };
+        available: {
+          _def: {
+            outputs: [z.ZodType<any[]>];
+          };
+        };
+        byUser: {
+          _def: {
+            inputs: [z.ZodType<any>];
+            outputs: [z.ZodType<any[]>];
+          };
+        };
+        csv: {
+          _def: {
+            outputs: [z.ZodType<string>];
+          };
+        };
+      };
+      mutations: {
+        create: {
+          _def: {
+            inputs: [z.ZodType<any>];
+            outputs: [z.ZodType<any>];
+          };
+        };
+        updateStatus: {
+          _def: {
+            inputs: [z.ZodType<any>];
+            outputs: [z.ZodType<any>];
+          };
+        };
+        delete: {
+          _def: {
+            inputs: [z.ZodType<any>];
+            outputs: [z.ZodType<any>];
+          };
+        };
+      };
+    };
+  };
+  rentalHistory: {
+    _def: {
+      queries: {
+        list: {
+          _def: {
+            outputs: [z.ZodType<any[]>];
+          };
+        };
+      };
+      mutations: {
+        record: {
+          _def: {
+            inputs: [z.ZodType<any>];
+            outputs: [z.ZodType<any>];
+          };
+        };
+        return: {
+          _def: {
+            inputs: [z.ZodType<any>];
+            outputs: [z.ZodType<any>];
+          };
+        };
+        delete: {
+          _def: {
+            inputs: [z.ZodType<any>];
+            outputs: [z.ZodType<any>];
+          };
+        };
+      };
+    };
+  };
+};

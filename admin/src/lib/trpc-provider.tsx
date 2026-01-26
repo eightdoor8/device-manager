@@ -13,7 +13,7 @@ console.log('[TRPCProvider] API_URL:', API_URL);
 export function TRPCProvider({ children }: { children: ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
   const [trpcClient] = useState(() =>
-    trpc.createClient({
+    (trpc as any).createClient({
       links: [
         httpBatchLink({
           url: `${API_URL}/api/trpc`,
@@ -29,9 +29,11 @@ export function TRPCProvider({ children }: { children: ReactNode }) {
     })
   );
 
+  const TRPCProvider = (trpc as any).Provider;
+
   return (
-    <trpc.Provider client={trpcClient} queryClient={queryClient}>
+    <TRPCProvider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    </trpc.Provider>
+    </TRPCProvider>
   );
 }

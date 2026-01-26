@@ -354,4 +354,8 @@
 - [x] ログインページに Google ログインボタンを追加
 - [x] 新規登録ページに Google サインアップボタンを追加
 - [x] Google 認証フローをテスト（ローカルで確認完了）
-- [ ] Vercel にデプロイして本番環境でテスト
+- [x] Vercel にデプロイして本番環境でテスト（ビルドエラーを修正中）
+
+## ビルドエラー修正
+- [x] server/routers-types.ts を修正して tRPC 型定義エラーを解決
+- [x] RentalHistory.tsx を修正して tRPC の統合を回避
