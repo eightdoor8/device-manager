@@ -5,10 +5,13 @@ import {
   signOut as firebaseSignOut,
   onAuthStateChanged,
   User as FirebaseUser,
+  signInWithCredential,
+  GoogleAuthProvider,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { User } from "@/types/device";
 import { getUser, createOrUpdateUser } from "@/services/user-service";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
 
 export function useFirebaseAuth() {
   const [user, setUser] = useState<User | null>(null);
@@ -79,11 +82,49 @@ export function useFirebaseAuth() {
     }
   };
 
+  const signInWithGoogle = async () => {
+    try {
+      console.log("[useFirebaseAuth] Google sign in attempt");
+      setError(null);
+      setLoading(true);
+
+      // Google Sign-In を実行
+      const userInfo = await GoogleSignin.signIn();
+      console.log("[useFirebaseAuth] Google sign in successful:", userInfo.data?.user?.email);
+
+      // Google ID Token を取得
+      const idToken = userInfo.data?.idToken;
+      if (!idToken) {
+        throw new Error("Failed to get Google ID token");
+      }
+
+      // Firebase Credential を作成
+      const credential = GoogleAuthProvider.credential(idToken);
+
+      // Firebase で認証
+      const result = await signInWithCredential(auth, credential);
+      console.log("[useFirebaseAuth] Firebase authentication successful:", result.user.uid);
+      // User state will be updated by onAuthStateChanged
+    } catch (err: any) {
+      console.error("[useFirebaseAuth] Google sign in error:", err.code, err.message);
+      setError(err.message || "Failed to sign in with Google");
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const signOut = async () => {
     try {
       console.log("[useFirebaseAuth] Sign out");
       setError(null);
       await firebaseSignOut(auth);
+      // Google Sign-Out も実行
+      try {
+        await GoogleSignin.signOut();
+      } catch (err) {
+        console.warn("[useFirebaseAuth] Google sign out error (non-fatal):", err);
+      }
       setUser(null);
       setFirebaseUser(null);
     } catch (err: any) {
@@ -100,6 +141,7 @@ export function useFirebaseAuth() {
     error,
     signIn,
     signUp,
+    signInWithGoogle,
     signOut,
     isAuthenticated: !!user,
   };
