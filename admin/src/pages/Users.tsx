@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { collection, getDocs, Timestamp } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { db } from "../lib/firebase-auth";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ErrorMessage } from "../components/ErrorMessage";
@@ -48,36 +48,13 @@ export function Users({ user }: UsersProps) {
         const usersData = usersSnapshot.docs
           .map((doc) => {
             const data = doc.data();
-            
-            // Firestore Timestamp を Date に変換
-            const convertTimestamp = (timestamp: any): Date => {
-              if (!timestamp) return new Date();
-              // Firestore Timestamp オブジェクトの場合
-              if (timestamp instanceof Timestamp) {
-                return timestamp.toDate();
-              }
-              // Date オブジェクトの場合
-              if (timestamp instanceof Date) {
-                return timestamp;
-              }
-              // 数値（ミリ秒）の場合
-              if (typeof timestamp === 'number') {
-                return new Date(timestamp);
-              }
-              // 文字列の場合
-              if (typeof timestamp === 'string') {
-                return new Date(timestamp);
-              }
-              return new Date();
-            };
-            
             return {
               id: doc.id,
               name: data.name || null,
               email: data.email || null,
               role: data.role || "user",
-              createdAt: convertTimestamp(data.createdAt),
-              updatedAt: convertTimestamp(data.updatedAt),
+              createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
+              updatedAt: data.updatedAt ? new Date(data.updatedAt) : new Date(),
             } as NormalizedUser;
           });
         setUsers(usersData);
@@ -209,7 +186,7 @@ export function Users({ user }: UsersProps) {
                     {user.role === "admin" ? "管理者" : "ユーザー"}
                   </span>
                 </td>
-                <td>{user.createdAt.toLocaleDateString("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })}</td>
+                <td>{new Date(user.createdAt).toLocaleDateString("ja-JP")}</td>
               </tr>
             ))}
           </tbody>
