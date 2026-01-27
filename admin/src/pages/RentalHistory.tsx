@@ -1,56 +1,90 @@
 import { useState, useEffect } from 'react';
+import { collection, query, getDocs, Timestamp } from 'firebase/firestore';
+import { db } from '../lib/firebase-auth';
 import '../styles/RentalHistory.css';
 
 interface RentalRecord {
   id: string;
-  deviceId: number;
+  deviceId: string;
   deviceName: string;
+  manufacturer: string;
+  modelName: string;
   userId: string;
   userName: string;
   borrowedAt: string;
   returnedAt?: string;
-  status: 'borrowed' | 'returned';
+  status: 'in_use' | 'available';
 }
 
 export default function RentalHistory() {
   const [records, setRecords] = useState<RentalRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
 
-  // Fetch rental history data
+  // Fetch rental history data from Firebase
   useEffect(() => {
     const fetchHistory = async () => {
       try {
         setLoading(true);
         setError(null);
-        
-        // Mock data - in production, this would call the tRPC API
-        // For now, we'll use mock data to avoid tRPC type issues
-        const mockRecords: RentalRecord[] = [
-          {
-            id: '1',
-            deviceId: 1,
-            deviceName: 'iPad Pro 12.9"',
-            userId: 'user1',
-            userName: 'John Doe',
-            borrowedAt: '2026-01-20 10:00',
-            returnedAt: '2026-01-21 14:30',
-            status: 'returned',
-          },
-          {
-            id: '2',
-            deviceId: 2,
-            deviceName: 'MacBook Pro 16"',
-            userId: 'user2',
-            userName: 'Jane Smith',
-            borrowedAt: '2026-01-22 09:00',
-            status: 'borrowed',
-          },
-        ];
-        
-        setRecords(mockRecords);
+
+        // Query devices collection for items with borrowedAt field
+        const devicesRef = collection(db, 'devices');
+        const q = query(devicesRef);
+        const querySnapshot = await getDocs(q);
+
+        const rentalRecords: RentalRecord[] = [];
+
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+
+          // Only include devices that have borrowedAt (rental history)
+          if (data.borrowedAt) {
+            // Convert Firestore Timestamp to Date
+            const borrowedAtDate = data.borrowedAt instanceof Timestamp
+              ? data.borrowedAt.toDate()
+              : new Date(data.borrowedAt);
+
+            const updatedAtDate = data.updatedAt instanceof Timestamp
+              ? data.updatedAt.toDate()
+              : new Date(data.updatedAt);
+
+            // Format dates as YYYY-MM-DD HH:MM:SS
+            const formatDate = (date: Date) => {
+              const year = date.getFullYear();
+              const month = String(date.getMonth() + 1).padStart(2, '0');
+              const day = String(date.getDate()).padStart(2, '0');
+              const hours = String(date.getHours()).padStart(2, '0');
+              const minutes = String(date.getMinutes()).padStart(2, '0');
+              const seconds = String(date.getSeconds()).padStart(2, '0');
+              return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+            };
+
+            rentalRecords.push({
+              id: doc.id,
+              deviceId: doc.id,
+              deviceName: data.modelName || 'Unknown Device',
+              manufacturer: data.manufacturer || 'Unknown',
+              modelName: data.modelName || 'Unknown',
+              userId: data.currentUserId || 'Unknown',
+              userName: data.currentUserName || 'Unknown User',
+              borrowedAt: formatDate(borrowedAtDate),
+              returnedAt: data.status === 'available' ? formatDate(updatedAtDate) : undefined,
+              status: data.status || 'available',
+            });
+          }
+        });
+
+        // Sort by borrowedAt descending (newest first)
+        rentalRecords.sort((a, b) => {
+          const dateA = new Date(a.borrowedAt).getTime();
+          const dateB = new Date(b.borrowedAt).getTime();
+          return dateB - dateA;
+        });
+
+        setRecords(rentalRecords);
       } catch (err) {
+        console.error('Error fetching rental history:', err);
         setError(err instanceof Error ? err.message : '貸出履歴の取得に失敗しました');
       } finally {
         setLoading(false);
@@ -59,21 +93,6 @@ export default function RentalHistory() {
 
     fetchHistory();
   }, []);
-
-  const handleDeleteRecord = async (recordId: string) => {
-    if (confirm('この履歴を削除してもよろしいですか？')) {
-      try {
-        setDeleting(true);
-        // Mock delete - in production, this would call the tRPC API
-        setRecords(records.filter(r => r.id !== recordId));
-        alert('履歴を削除しました');
-      } catch (err) {
-        alert(`エラー: ${err instanceof Error ? err.message : '不明なエラーが発生しました'}`);
-      } finally {
-        setDeleting(false);
-      }
-    }
-  };
 
   if (error) {
     return (
@@ -103,11 +122,11 @@ export default function RentalHistory() {
           <thead>
             <tr>
               <th>端末名</th>
+              <th>メーカー</th>
               <th>ユーザー</th>
               <th>貸出日時</th>
               <th>返却日時</th>
               <th>状態</th>
-              <th>操作</th>
             </tr>
           </thead>
           <tbody>
@@ -123,22 +142,14 @@ export default function RentalHistory() {
               records.map((record: RentalRecord) => (
                 <tr key={record.id}>
                   <td>{record.deviceName}</td>
+                  <td>{record.manufacturer}</td>
                   <td>{record.userName}</td>
                   <td>{record.borrowedAt}</td>
                   <td>{record.returnedAt || '-'}</td>
                   <td>
                     <span className={`status-badge status-${record.status}`}>
-                      {record.status === 'borrowed' ? '貸出中' : '返却済み'}
+                      {record.status === 'in_use' ? '貸出中' : '返却済み'}
                     </span>
-                  </td>
-                  <td className="actions">
-                    <button
-                      className="btn-delete"
-                      onClick={() => handleDeleteRecord(record.id)}
-                      disabled={deleting}
-                    >
-                      {deleting ? '処理中...' : '削除'}
-                    </button>
                   </td>
                 </tr>
               ))
