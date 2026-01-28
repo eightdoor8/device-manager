@@ -6,7 +6,7 @@ import { Dashboard } from './pages/Dashboard'
 import { Devices } from './pages/Devices'
 import { Users } from './pages/Users'
 import RentalHistory from './pages/RentalHistory'
-import { Settings } from './pages/Settings'
+
 import { Navbar } from './components/Navbar'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 
@@ -56,12 +56,7 @@ function AppContent() {
             isAuthenticated ? <RentalHistory /> : <Navigate to="/login" />
           } 
         />
-        <Route 
-          path="/settings" 
-          element={
-            isAuthenticated ? <Settings user={user} /> : <Navigate to="/login" />
-          } 
-        />
+
         <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} />} />
       </Routes>
     </Router>
