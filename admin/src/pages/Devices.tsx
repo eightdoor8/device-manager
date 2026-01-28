@@ -5,6 +5,7 @@ import { db } from "../lib/firebase-auth";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { DeleteConfirmDialog } from "../components/DeleteConfirmDialog";
+import { formatTimestamp } from "../utils/timestamp";
 import "../styles/Devices.css";
 import "../styles/Messages.css";
 
@@ -288,7 +289,7 @@ export function Devices({ user }: DevicesProps) {
                   </span>
                 </td>
                 <td>{device.currentUserName || "-"}</td>
-                <td>{new Date(device.registeredAt).toLocaleDateString("ja-JP")}</td>
+                <td>{formatTimestamp(device.registeredAt)}</td>
                 <td>
                   <div className="action-buttons">
                     {device.status === "available" && (

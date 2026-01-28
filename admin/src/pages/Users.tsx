@@ -3,6 +3,7 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "../lib/firebase-auth";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ErrorMessage } from "../components/ErrorMessage";
+import { formatTimestamp } from "../utils/timestamp";
 import "../styles/Users.css";
 
 interface UsersProps {
@@ -186,7 +187,7 @@ export function Users({ user }: UsersProps) {
                     {user.role === "admin" ? "管理者" : "ユーザー"}
                   </span>
                 </td>
-                <td>{new Date(user.createdAt).toLocaleDateString("ja-JP")}</td>
+                <td>{formatTimestamp(user.createdAt)}</td>
               </tr>
             ))}
           </tbody>
