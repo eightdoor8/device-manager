@@ -1,23 +1,25 @@
 import { useState, useEffect } from 'react';
-import { collection, query, getDocs, Timestamp } from 'firebase/firestore';
+import { collection, query, getDocs, Timestamp, orderBy, limit } from 'firebase/firestore';
 import { db } from '../lib/firebase-auth';
 import '../styles/RentalHistory.css';
 
-interface RentalRecord {
+interface RentalHistoryRecord {
   id: string;
   deviceId: string;
   deviceName: string;
   manufacturer: string;
-  modelName: string;
+  osName: string;
+  osVersion: string;
+  physicalMemory: string;
   userId: string;
   userName: string;
-  borrowedAt: string;
-  returnedAt?: string;
-  status: 'in_use' | 'available';
+  action: 'borrow' | 'return';
+  timestamp: string;
+  createdAt: string;
 }
 
 export default function RentalHistory() {
-  const [records, setRecords] = useState<RentalRecord[]>([]);
+  const [records, setRecords] = useState<RentalHistoryRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,58 +30,50 @@ export default function RentalHistory() {
         setLoading(true);
         setError(null);
 
-        // Query devices collection for items with borrowedAt field
-        const devicesRef = collection(db, 'devices');
-        const q = query(devicesRef);
+        // Query rentalHistory collection, ordered by timestamp descending, limit 100
+        const rentalHistoryRef = collection(db, 'rentalHistory');
+        const q = query(
+          rentalHistoryRef,
+          orderBy('timestamp', 'desc'),
+          limit(100)
+        );
         const querySnapshot = await getDocs(q);
 
-        const rentalRecords: RentalRecord[] = [];
+        const rentalRecords: RentalHistoryRecord[] = [];
 
         querySnapshot.forEach((doc) => {
           const data = doc.data();
 
-          // Only include devices that have borrowedAt (rental history)
-          if (data.borrowedAt) {
-            // Convert Firestore Timestamp to Date
-            const borrowedAtDate = data.borrowedAt instanceof Timestamp
-              ? data.borrowedAt.toDate()
-              : new Date(data.borrowedAt);
+          // Convert Firestore Timestamp to Date
+          const timestampDate = data.timestamp instanceof Timestamp
+            ? data.timestamp.toDate()
+            : new Date(data.timestamp);
 
-            const updatedAtDate = data.updatedAt instanceof Timestamp
-              ? data.updatedAt.toDate()
-              : new Date(data.updatedAt);
+          // Format date as YYYY-MM-DD HH:MM:SS
+          const formatDate = (date: Date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+          };
 
-            // Format dates as YYYY-MM-DD HH:MM:SS
-            const formatDate = (date: Date) => {
-              const year = date.getFullYear();
-              const month = String(date.getMonth() + 1).padStart(2, '0');
-              const day = String(date.getDate()).padStart(2, '0');
-              const hours = String(date.getHours()).padStart(2, '0');
-              const minutes = String(date.getMinutes()).padStart(2, '0');
-              const seconds = String(date.getSeconds()).padStart(2, '0');
-              return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-            };
-
-            rentalRecords.push({
-              id: doc.id,
-              deviceId: doc.id,
-              deviceName: data.modelName || 'Unknown Device',
-              manufacturer: data.manufacturer || 'Unknown',
-              modelName: data.modelName || 'Unknown',
-              userId: data.currentUserId || 'Unknown',
-              userName: data.currentUserName || 'Unknown User',
-              borrowedAt: formatDate(borrowedAtDate),
-              returnedAt: data.status === 'available' ? formatDate(updatedAtDate) : undefined,
-              status: data.status || 'available',
-            });
-          }
-        });
-
-        // Sort by borrowedAt descending (newest first)
-        rentalRecords.sort((a, b) => {
-          const dateA = new Date(a.borrowedAt).getTime();
-          const dateB = new Date(b.borrowedAt).getTime();
-          return dateB - dateA;
+          rentalRecords.push({
+            id: doc.id,
+            deviceId: data.deviceId || 'Unknown',
+            deviceName: data.deviceName || 'Unknown Device',
+            manufacturer: data.manufacturer || 'Unknown',
+            osName: data.osName || 'Unknown',
+            osVersion: data.osVersion || 'Unknown',
+            physicalMemory: data.physicalMemory || 'Unknown',
+            userId: data.userId || 'Unknown',
+            userName: data.userName || 'Unknown User',
+            action: data.action || 'unknown',
+            timestamp: formatDate(timestampDate),
+            createdAt: formatDate(timestampDate),
+          });
         });
 
         setRecords(rentalRecords);
@@ -124,33 +118,31 @@ export default function RentalHistory() {
               <th>端末名</th>
               <th>メーカー</th>
               <th>ユーザー</th>
-              <th>貸出日時</th>
-              <th>返却日時</th>
-              <th>状態</th>
+              <th>アクション</th>
+              <th>日時</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className="loading">読み込み中...</td>
+                <td colSpan={5} className="loading">読み込み中...</td>
               </tr>
             ) : records.length === 0 ? (
               <tr>
-                <td colSpan={6} className="empty">貸出履歴がありません</td>
+                <td colSpan={5} className="empty">貸出履歴がありません</td>
               </tr>
             ) : (
-              records.map((record: RentalRecord) => (
+              records.map((record: RentalHistoryRecord) => (
                 <tr key={record.id}>
                   <td>{record.deviceName}</td>
                   <td>{record.manufacturer}</td>
                   <td>{record.userName}</td>
-                  <td>{record.borrowedAt}</td>
-                  <td>{record.returnedAt || '-'}</td>
                   <td>
-                    <span className={`status-badge status-${record.status}`}>
-                      {record.status === 'in_use' ? '貸出中' : '返却済み'}
+                    <span className={`action-badge action-${record.action}`}>
+                      {record.action === 'borrow' ? '貸出' : '返却'}
                     </span>
                   </td>
+                  <td>{record.timestamp}</td>
                 </tr>
               ))
             )}

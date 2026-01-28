@@ -185,14 +185,32 @@ export async function borrowDevice(
       throw new Error("Device is already in use");
     }
 
+    const now = Timestamp.now();
     const deviceRef = doc(db, DEVICES_COLLECTION, deviceId);
     await updateDoc(deviceRef, {
       status: DeviceStatus.IN_USE,
       currentUserId: userId,
       currentUserName: userName,
-      borrowedAt: Timestamp.now(),
-      updatedAt: Timestamp.now(),
+      borrowedAt: now,
+      updatedAt: now,
     });
+
+    // Add rental history log
+    const rentalHistoryRef = collection(db, "rentalHistory");
+    await addDoc(rentalHistoryRef, {
+      deviceId,
+      deviceName: device.modelName,
+      manufacturer: device.manufacturer,
+      osName: device.osName,
+      osVersion: device.osVersion,
+      physicalMemory: device.physicalMemory,
+      userId,
+      userName,
+      action: "borrow",
+      timestamp: now,
+      createdAt: now,
+    });
+
     console.log("[DeviceService] Device borrowed successfully");
   } catch (error) {
     console.error("[DeviceService] Error borrowing device:", error);
@@ -217,14 +235,32 @@ export async function returnDevice(deviceId: string, userId: string): Promise<vo
       throw new Error("You are not the current user of this device");
     }
 
+    const now = Timestamp.now();
     const deviceRef = doc(db, DEVICES_COLLECTION, deviceId);
     await updateDoc(deviceRef, {
       status: DeviceStatus.AVAILABLE,
       currentUserId: null,
       currentUserName: null,
       borrowedAt: null,
-      updatedAt: Timestamp.now(),
+      updatedAt: now,
     });
+
+    // Add rental history log
+    const rentalHistoryRef = collection(db, "rentalHistory");
+    await addDoc(rentalHistoryRef, {
+      deviceId,
+      deviceName: device.modelName,
+      manufacturer: device.manufacturer,
+      osName: device.osName,
+      osVersion: device.osVersion,
+      physicalMemory: device.physicalMemory,
+      userId: device.currentUserId,
+      userName: device.currentUserName,
+      action: "return",
+      timestamp: now,
+      createdAt: now,
+    });
+
     console.log("[DeviceService] Device returned successfully");
   } catch (error) {
     console.error("[DeviceService] Error returning device:", error);
