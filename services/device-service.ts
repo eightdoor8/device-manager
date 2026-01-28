@@ -31,6 +31,7 @@ function convertToDevice(id: string, data: DocumentData): Device {
     screenSize: data.screenSize,
     physicalMemory: data.physicalMemory,
     uuid: data.uuid,
+    deviceId: data.deviceId || "", // New device ID field
     status: data.status,
     currentUserId: data.currentUserId,
     currentUserName: data.currentUserName,
@@ -130,15 +131,20 @@ export async function registerDevice(
     console.log("[DeviceService] Device data:", deviceData);
     console.log("[DeviceService] User ID:", userId);
 
+    // Import generateDeviceId dynamically to avoid circular dependencies
+    const { generateDeviceId } = await import("./device-id-service");
+    const deviceId = await generateDeviceId(deviceData.osName);
+
     const now = Timestamp.now();
     const docRef = await addDoc(collection(db, DEVICES_COLLECTION), {
       ...deviceData,
+      deviceId, // Add auto-generated device ID
       status: DeviceStatus.AVAILABLE,
       registeredBy: userId,
       registeredAt: now,
       updatedAt: now,
     });
-    console.log("[DeviceService] Device registered successfully:", docRef.id);
+    console.log("[DeviceService] Device registered successfully:", docRef.id, "with deviceId:", deviceId);
     return docRef.id;
   } catch (error) {
     console.error("[DeviceService] Error registering device:", error);

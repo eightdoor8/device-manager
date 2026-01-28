@@ -195,9 +195,9 @@ export default function RegisterDeviceScreen() {
             </View>
 
             <View style={styles.fieldContainer}>
-              <ThemedText style={styles.label}>UUID</ThemedText>
+              <ThemedText style={styles.label}>端末ID</ThemedText>
               <ThemedText style={[styles.valueText, { color: textDisabled }]} numberOfLines={1}>
-                {formData.uuid}
+                {formData.deviceId || "（登録時に自動採番）"}
               </ThemedText>
             </View>
 

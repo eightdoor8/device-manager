@@ -29,7 +29,8 @@ export interface Device {
   // ハードウェア情報
   screenSize?: string; // 例: "6.7インチ"
   physicalMemory?: string; // 例: "6GB"
-  uuid: string; // 端末固有ID
+  uuid?: string; // 端末固有ID（廃止予定）
+  deviceId: string; // 採番ユニークID（例: "A00001", "I00001")
   
   // ステータス情報
   status: DeviceStatus;
@@ -77,6 +78,7 @@ export interface DeviceFormData {
   manufacturer: string;
   screenSize?: string;
   physicalMemory?: string;
-  uuid: string;
+  uuid?: string; // 廃止予定
+  deviceId?: string; // 自動採番される（登録時は不要）
   memo?: string;
 }
