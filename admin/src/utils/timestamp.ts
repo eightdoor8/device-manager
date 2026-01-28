@@ -1,6 +1,6 @@
 /**
  * Firebase のタイムスタンプオブジェクトまたは Date オブジェクトを
- * 「YYYY年M月D日 HH:mm:ss UTC+9」形式の文字列に変換
+ * 「YYYY年M月D日 HH:mm:ss」形式の文字列に変換（UTC+9）
  */
 export function formatTimestamp(timestamp: any): string {
   if (!timestamp) {
@@ -38,7 +38,7 @@ export function formatTimestamp(timestamp: any): string {
   // UTC+9 に変換
   const jstDate = new Date(date.getTime() + 9 * 60 * 60 * 1000);
 
-  // フォーマット: YYYY年M月D日 HH:mm:ss UTC+9
+  // フォーマット: YYYY年M月D日 HH:mm:ss
   const year = jstDate.getUTCFullYear();
   const month = jstDate.getUTCMonth() + 1;
   const day = jstDate.getUTCDate();
@@ -46,5 +46,5 @@ export function formatTimestamp(timestamp: any): string {
   const minutes = String(jstDate.getUTCMinutes()).padStart(2, "0");
   const seconds = String(jstDate.getUTCSeconds()).padStart(2, "0");
 
-  return `${year}年${month}月${day}日 ${hours}:${minutes}:${seconds} UTC+9`;
+  return `${year}年${month}月${day}日 ${hours}:${minutes}:${seconds}`;
 }

@@ -54,8 +54,16 @@ export function Users({ user }: UsersProps) {
               name: data.name || null,
               email: data.email || null,
               role: data.role || "user",
-              createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
-              updatedAt: data.updatedAt ? new Date(data.updatedAt) : new Date(),
+              createdAt: data.createdAt
+                ? typeof data.createdAt.toDate === "function"
+                  ? data.createdAt.toDate()
+                  : new Date(data.createdAt)
+                : new Date(),
+              updatedAt: data.updatedAt
+                ? typeof data.updatedAt.toDate === "function"
+                  ? data.updatedAt.toDate()
+                  : new Date(data.updatedAt)
+                : new Date(),
             } as NormalizedUser;
           });
         setUsers(usersData);
