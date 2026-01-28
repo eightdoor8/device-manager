@@ -91,6 +91,12 @@ const config: ExpoConfig = {
         },
       },
     ],
+    [
+      "@react-native-google-signin/google-signin",
+      {
+        iosUrlScheme: env.scheme,
+      },
+    ],
   ],
   experiments: {
     typedRoutes: true,

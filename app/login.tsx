@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   View,
   TextInput,
@@ -17,19 +17,38 @@ import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { Image } from "expo-image";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { signIn, signUp, loading } = useFirebaseAuth();
+  const { signIn, signUp, signInWithGoogle, loading } = useFirebaseAuth();
   const insets = useSafeAreaInsets();
 
   const tintColor = useThemeColor({}, "tint");
   const textColor = useThemeColor({}, "text");
   const textSecondary = useThemeColor({}, "textSecondary");
   const cardColor = useThemeColor({}, "card");
+
+  // Google Sign-In を初期化
+  useEffect(() => {
+    const initGoogleSignIn = async () => {
+      try {
+        await GoogleSignin.hasPlayServices();
+        // Google Sign-In の設定（Web Client ID は Firebase Console から取得）
+        GoogleSignin.configure({
+          webClientId: "415323537674-cf7a7k1424hjb8jkq291qukohoiihrfl.apps.googleusercontent.com",
+          offlineAccess: false,
+        });
+        console.log("[LoginScreen] Google Sign-In initialized");
+      } catch (error) {
+        console.error("[LoginScreen] Google Sign-In initialization error:", error);
+      }
+    };
+    initGoogleSignIn();
+  }, []);
 
   const handleSubmit = async () => {
     if (!email || !password) {
@@ -67,9 +86,9 @@ export default function LoginScreen() {
       console.error("[Auth] Error code:", error.code);
       console.error("[Auth] Error message:", error.message);
       console.error("[Auth] Full error:", error);
-      
+
       let message = "認証に失敗しました";
-      
+
       // ネットワークエラーの検出
       const errorMsg = error.message || "";
       if (errorMsg.includes("Network") || errorMsg.includes("network") || errorMsg.includes("timeout")) {
@@ -90,6 +109,26 @@ export default function LoginScreen() {
         message = "メールアドレスまたはパスワードが正しくありません";
       }
       // Firebaseの詳細なエラーメッセージは表示しない
+      Alert.alert("エラー", message);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      console.log("[Auth] Google sign in attempt");
+      await signInWithGoogle();
+      console.log("[Auth] Google sign in successful");
+      router.replace("/(tabs)");
+    } catch (error: any) {
+      console.error("[Auth] Google sign in error:", error);
+      let message = "Google ログインに失敗しました";
+
+      if (error.message?.includes("Network") || error.message?.includes("network")) {
+        message = "ネットワーク接続エラー: インターネット接続を確認してください";
+      } else if (error.message?.includes("cancelled")) {
+        message = "ログインがキャンセルされました";
+      }
+
       Alert.alert("エラー", message);
     }
   };
@@ -174,6 +213,36 @@ export default function LoginScreen() {
               )}
             </Pressable>
 
+            {/* Divider */}
+            <View style={styles.divider}>
+              <View style={[styles.dividerLine, { backgroundColor: textSecondary }]} />
+              <ThemedText style={[styles.dividerText, { color: textSecondary }]}>
+                または
+              </ThemedText>
+              <View style={[styles.dividerLine, { backgroundColor: textSecondary }]} />
+            </View>
+
+            {/* Google Sign-In Button */}
+            <Pressable
+              style={[styles.googleButton, { borderColor: tintColor }]}
+              onPress={handleGoogleSignIn}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color={tintColor} />
+              ) : (
+                <>
+                  <Image
+                    source={require("@/assets/images/google-icon.png")}
+                    style={styles.googleIcon}
+                  />
+                  <ThemedText style={[styles.googleButtonText, { color: textColor }]}>
+                    Google でログイン
+                  </ThemedText>
+                </>
+              )}
+            </Pressable>
+
             <Pressable
               style={styles.switchButton}
               onPress={() => setIsSignUp(!isSignUp)}
@@ -245,6 +314,37 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+    lineHeight: 24,
+  },
+  divider: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 8,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+  },
+  dividerText: {
+    marginHorizontal: 12,
+    fontSize: 14,
+  },
+  googleButton: {
+    height: 48,
+    borderRadius: 8,
+    borderWidth: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 12,
+  },
+  googleIcon: {
+    width: 20,
+    height: 20,
+  },
+  googleButtonText: {
     fontSize: 16,
     fontWeight: "600",
     lineHeight: 24,
